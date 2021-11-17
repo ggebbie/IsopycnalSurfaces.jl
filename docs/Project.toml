@@ -1,0 +1,3 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+SigmaShift = "29a8b8bc-eb2a-4ada-9a47-be49547c4d59"

@@ -1,0 +1,13 @@
+name = "SigmaShift"
+uuid = "29a8b8bc-eb2a-4ada-9a47-be49547c4d59"
+authors = ["G Jake Gebbie"]
+version = "0.1.0"
+
+[compat]
+julia = "1.6"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
