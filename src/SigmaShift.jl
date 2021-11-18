@@ -351,4 +351,6 @@ function dedupfirst!(a,b)
     b[ii] /= counter
 end
 
+isnotpositive(x) = (abs(x) == -x)
+
 end
