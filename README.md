@@ -7,7 +7,8 @@
 
 ## Installation
 
-pkg> add SigmaShift
+pkg> add SigmaShift (failed)
+pkg> add ./SigmaShift.jl
 
 
 ## Usage (load module)
@@ -15,13 +16,14 @@ pkg> add SigmaShift
 include("./SigmaShift.jl/src/SigmaShift.jl")
 
 ## Test1
+using SigmaShift
 pz = collect(0.:500.:4000.) # pressure levels
 nz = length(pz)
 
 θz = collect(range(20,stop=10,length=nz))
 Sz = collect(range(36,stop=35,length=nz))
 ztest = sort(rand(2:8,2))
-σ₁true = SigmaShift.sigma1column(θz[ztest],Sz[ztest],pz[ztest])
+σ₁true = sigma1column(θz[ztest],Sz[ztest],pz[ztest])
 
 Results: 
 	30.041106141810587
@@ -29,9 +31,9 @@ Results:
 
 sig1grid = range(minimum(σ₁true),stop=maximum(σ₁true),length=20)
 splorder = 3
-σ₁=SigmaShift.sigma1column(θz,Sz,pz)
+σ₁=sigma1column(θz,Sz,pz)
 sgood = findall(minimum(σ₁) .<= sig1grid .<= maximum(σ₁))
-pσ = SigmaShift.var2sigmacolumn(σ₁,pz,sig1grid[sgood],splorder)
+pσ = var2sigmacolumn(σ₁,pz,sig1grid[sgood],splorder)
 
 Results:
   500.0
