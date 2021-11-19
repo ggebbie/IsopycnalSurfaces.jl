@@ -27,6 +27,12 @@ version = "1.0.1"
 [[Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
+[[BinaryProvider]]
+deps = ["Libdl", "Logging", "SHA"]
+git-tree-sha1 = "ecdec412a9abc8db54c0efc5548c64dfce072058"
+uuid = "b99e7846-7c00-51b0-8f62-c81ae34c0232"
+version = "0.5.10"
+
 [[Blosc]]
 deps = ["Blosc_jll"]
 git-tree-sha1 = "217da19d6f3a94753e580a8bc241c7cbefd9281f"
@@ -204,6 +210,12 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Libiconv_jll", "Pkg", "XML2_jll"]
 git-tree-sha1 = "8c14294a079216000a0bdca5ec5a447f073ddc9d"
 uuid = "78b55507-aeef-58d4-861c-77aaff3498b1"
 version = "0.20.1+7"
+
+[[GibbsSeaWater]]
+deps = ["BinaryProvider", "Compat", "Libdl", "Test"]
+git-tree-sha1 = "9a48963e25eb85ace3fa50706f10be2a29bc84bc"
+uuid = "9a22fb26-0b63-4589-b28e-8f9d0b5c3d05"
+version = "0.1.1"
 
 [[Git]]
 deps = ["Git_jll"]

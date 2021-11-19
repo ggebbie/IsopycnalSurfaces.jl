@@ -1,6 +1,6 @@
 module SigmaShift
 
-using MITgcmTools, MeshArrays, Dierckx, Interpolations
+using MITgcmTools, MeshArrays, Dierckx, Interpolations, GibbsSeaWater
 
 export sigma, vars2sigma1, sigma1column, var2sigmacolumn, sigma1grid
 export mixinversions!, dedup!

@@ -5,6 +5,7 @@ version = "0.1.0"
 
 [deps]
 Dierckx = "39dd38d3-220a-591b-8e3c-4c3a8c710a94"
+GibbsSeaWater = "9a22fb26-0b63-4589-b28e-8f9d0b5c3d05"
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
 MITgcmTools = "62725fbc-3a66-4df3-9000-e33e85b3a198"
 MeshArrays = "cb8c808f-1acf-59a3-9d2b-6e38d009f683"
