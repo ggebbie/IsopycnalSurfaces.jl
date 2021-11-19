@@ -41,6 +41,14 @@ using Test, Revise
     @test isapprox(pσ[end],pz[ztest[end]])
 
     ################################
+
+    # GibbsSeaWater
+    SA = gsw_sa_from_sp.(Sz[ztest],pz[ztest],90,45 )   # Absolute S from (pracital S, pressure, lon, lat)
+    CT = gsw_ct_from_pt.(SA ,θz[ztest])                # Conservative T from (Absolute S, sigma0)
+    σ₁Gibbs = gsw_rho.(SA, CT,1000.) .- 1000.         
+
+
+
     # MOVE THIS TEST TO ECCOTOUR.JL
     # Test the mapping onto sigma1.#
     # expt = "test"
