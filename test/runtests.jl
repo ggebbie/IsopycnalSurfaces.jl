@@ -1,92 +1,103 @@
-using SigmaShift
-using Test, Revise
+using Revise
+using SigmaShift, Test
 
 @testset "SigmaShift.jl" begin
     #############################
     # Test dedup! function
-    na = 10
-    for ndupes = 1:na-1
-        println(ndupes)
-        a = sort(randn(na))
-        b = randn(na)
-        # make duplicates at end
-        counter = 0
-        while counter < ndupes  
-            a[end-counter-1] = a[end-counter]
-            counter += 1
+    @testset "deduplication" begin
+        na = 10
+        for ndupes = 1:na-1
+            println(ndupes)
+            a = sort(randn(na))
+            b = randn(na)
+            # make duplicates at end
+            counter = 0
+            while counter < ndupes  
+                a[end-counter-1] = a[end-counter]
+                counter += 1
+            end
+            dedup!(a,b)
+            println(a)
+            println(b)
+            println(@test issorted(a))
         end
-        dedup!(a,b)
-        println(a)
-        println(b)
-        println(@test issorted(a))
     end
 
-    ################################
-    # Idealized mapping onto sigma1
-    pz = collect(0.:500.:4000.) # pressure levels
-    nz = length(pz)
+    @testset "column" begin
+        ################################
+        # Idealized mapping onto sigma1
+        pz = collect(0.:500.:4000.) # pressure levels
+        nz = length(pz)
 
-    θz = collect(range(20,stop=10,length=nz))
-    Sz = collect(range(36,stop=35,length=nz))
-    ztest = sort(rand(2:8,2))
-    σ₁true = sigma1column(θz[ztest],Sz[ztest],pz[ztest])
+        θz = collect(range(20,stop=10,length=nz))
+        Sz = collect(range(36,stop=35,length=nz))
+        ztest = sort(rand(2:8,2))
+        σ₁true = sigma1column(θz[ztest],Sz[ztest],pz[ztest])
 
-    sig1grid = range(minimum(σ₁true),stop=maximum(σ₁true),length=20)
-    splorder = 3
-    σ₁=sigma1column(θz,Sz,pz)
-    sgood = findall(minimum(σ₁) .<= sig1grid .<= maximum(σ₁))
-    pσ = var2sigmacolumn(σ₁,pz,sig1grid[sgood],splorder)
+        σ₁grid = range(minimum(σ₁true),stop=maximum(σ₁true),length=20)
+        σ₁=sigma1column(θz,Sz,pz)
 
-    @test isapprox(pσ[begin],pz[ztest[begin]])
-    @test isapprox(pσ[end],pz[ztest[end]])
+        @testset "column_spline" begin
+            splorder = 3
+            sgood = findall(minimum(σ₁) .<= σ₁grid .<= maximum(σ₁))
+            pσ = var2sigmacolumn(σ₁,pz,σ₁grid[sgood],splorder)
 
-    ################################
-    # MOVE THIS TEST TO ECCOTOUR.JL
-    # Test the mapping onto sigma1.#
-    # expt = "test"
-    # diagpath = pwd()
-    # path_out = pwd()
+            @test isapprox(pσ[begin],pz[ztest[begin]])
+            @test isapprox(pσ[end],pz[ztest[end]])
+        end
+
+        @testset "column_linear" begin
+            splorder = 100
+            sgood = findall(minimum(σ₁) .<= σ₁grid .<= maximum(σ₁))
+            pσ = var2sigmacolumn(σ₁,pz,σ₁grid[sgood],splorder)
+
+            @test isapprox(pσ[begin],pz[ztest[begin]])
+            @test isapprox(pσ[end],pz[ztest[end]])
+        end
+
+    end
     
-    # γ = setupLLCgrid("grid/"))
-    # nf = length(γ.fSize)
+    # test input from a 3D array
+    @testset "3d_array" begin
 
-    # # get standard levels of MITgcm
-    # z = depthlevels(γ)
-    # pstdz = pressurelevels(z)
-    # p₀ = 1000.0 ; # dbar
+        # currently empty
+        pz = collect(0.:500.:4000.) # pressure levels
+        nz = length(pz)
 
-    # # sig1 value of interestn
-    # sig1grid = 30.0;
+        θz = collect(range(20,stop=10,length=nz))
+        Sz = collect(range(36,stop=35,length=nz))
 
-    # TSroot = "state_3d_set1" # 1: θ, 2: S
-    # splorder = 100 # spline order
+        ztest = sort(rand(2:8,2))
+        σ₁true = sigma1column(θz[ztest],Sz[ztest],pz[ztest])
 
-    # # first filter for state_3d_set1
-    # filelist = searchdir(diagpath,TSroot)
+        # put θ,S,p into 3D array
+        nx = 10; ny = 10;
+        θ = Array{Float64,3}(undef,nx,ny,nz)
+        S = Array{Float64,3}(undef,nx,ny,nz)
+        p = Array{Float64,3}(undef,nx,ny,nz)
+        
+        [θ[i,j,k] = θz[k] for i = 1:nx for j = 1:ny for k = 1:nz ]
+        [S[i,j,k] = Sz[k] for i = 1:nx for j = 1:ny for k = 1:nz ]
+        [p[i,j,k] = pz[k] for i = 1:nx for j = 1:ny for k = 1:nz ]
 
-    # # second filter for "data"
-    # datafilelist  = filter(x -> occursin("data",x),filelist)
+        σ₁grid = collect(range(minimum(σ₁true),stop=maximum(σ₁true),length=20))
 
-    # filelist2 = searchdir(diagpath,RProot) 
-    # datafilelist2  = filter(x -> occursin("data",x),filelist)
+        vars = Dict("θ" => θ, "Sp" => S)
 
-    # # make an output directory for each expteriment
-    # !isdir(path_out) ? mkdir(path_out) : nothing;
-    # nt = length(datafilelist)
-    
-    # global tt = 0
-    # for datafile in datafilelist
-    #     tt += 1
+        @testset "3d_array_spline" begin
+            splorder = 3
+            varsσ = vars2sigma1(vars,pz,σ₁grid,splorder)
+            xx = rand(1:nx); yy = rand(1:ny)
+            @test isapprox(varsσ["p"][xx,yy,begin],pz[ztest[begin]])
+            @test isapprox(varsσ["p"][xx,yy,end],pz[ztest[end]])
+        end
 
-    #     #print timestamp
-    #     year,month = timestamp_monthly_v4r4(tt)
-
-    #     # eliminate suffix
-    #     fileroot = rstrip(datafile,['.','d','a','t','a'])
-    #     fileroot2 = RProot*fileroot[14:end] # a better way?
-    #     fileroots = (fileroot,fileroot2)
-    
-    #     # Read from filelist, map to sigma-1, write to file
-    #     mdsio2sigma1(diagpath,path_out,fileroots,γ,pstdz,sig1grid,splorder)
-    # end
+        @testset "3d_array_linear" begin
+            splorder = 100
+            varsσ = vars2sigma1(vars,pz,σ₁grid,splorder)
+            xx = rand(1:nx); yy = rand(1:ny)
+            @test isapprox(varsσ["p"][xx,yy,begin],pz[ztest[begin]])
+            @test isapprox(varsσ["p"][xx,yy,end],pz[ztest[end]])
+        end
+    end
 end
