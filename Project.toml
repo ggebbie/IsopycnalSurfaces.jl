@@ -15,6 +15,7 @@ Dierckx = "0.5"
 MITgcmTools = "0.1"
 Revise = "3"
 Interpolations = "0.13"
+MeshArrays = "0.2"
 julia = "1.6"
 
 [extras]
