@@ -339,10 +339,10 @@ uuid = "5ced341a-0733-55b8-9ab6-a4889d929147"
 version = "1.9.3+0"
 
 [[MITgcmTools]]
-deps = ["ClimateModels", "DataFrames", "Dates", "LazyArtifacts", "MeshArrays", "NetCDF", "OrderedCollections", "Printf", "SparseArrays", "Suppressor", "UUIDs"]
-git-tree-sha1 = "32f697fca7f26636e4df369681f96b2c56f40992"
+deps = ["ClimateModels", "DataFrames", "Dates", "MeshArrays", "NetCDF", "OrderedCollections", "Pkg", "Printf", "SparseArrays", "Suppressor", "UUIDs"]
+git-tree-sha1 = "b6dafe8035481b72f6780365cdba17b05d9a346e"
 uuid = "62725fbc-3a66-4df3-9000-e33e85b3a198"
-version = "0.1.31"
+version = "0.1.30"
 
 [[Markdown]]
 deps = ["Base64"]

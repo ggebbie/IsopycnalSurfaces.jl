@@ -31,6 +31,7 @@ function vars2sigma1(vars::Dict{String,Array{T,3}},pressure::Vector{T},σ₁grid
     θname = string()
 
     nx = Integer(); ny = Integer(); nz = Integer()
+    
     for k in θkeys
         if haskey(vars,k)
             nx,ny,nz = size(vars[k])
