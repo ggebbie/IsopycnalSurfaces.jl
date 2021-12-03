@@ -1,11 +1,11 @@
-# SigmaShift
+# IsopycnalSurfaces.jl
 
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://ggebbie.github.io/SigmaShift.jl/stable)
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://ggebbie.github.io/SigmaShift.jl/dev)
-[![Build Status](https://github.com/ggebbie/SigmaShift.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/ggebbie/SigmaShift.jl/actions/workflows/CI.yml?query=branch%3Amain)
-[![Coverage](https://codecov.io/gh/ggebbie/SigmaShift.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/ggebbie/SigmaShift.jl)
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://ggebbie.github.io/IsopycnalSurfaces.jl/stable)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://ggebbie.github.io/IsopycnalSurfaces.jl/dev)
+[![Build Status](https://github.com/ggebbie/IsopycnalSurfaces.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/ggebbie/IsopycnalSurfaces.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![Coverage](https://codecov.io/gh/ggebbie/IsopycnalSurfaces.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/ggebbie/IsopycnalSurfaces.jl)
 
-* SigmaShift.jl was originally started by G Jake Gebbie as a part of the ECCOtour.jl package (https://github.com/ggebbie/ECCOtour.jl)
+* IsopycnalSurfaces.jl was originally started by G Jake Gebbie as a part of the ECCOtour.jl package (https://github.com/ggebbie/ECCOtour.jl)
 
 * Core functionality: Take a profile (water column) of temperature and salinity on pressure or depth coordinates and transfer onto a vertical coordinate of density. 
 
@@ -18,7 +18,9 @@
 * After setting up the Julia environment (instructions below), check that all tests pass via the following shell command in the repository base directory:
 `julia --project=@. test/runtests.jl`
 
-* Also see Greg Wagner's package `Isopycnal.jl`.
+* This project was originally called *SigmaShift.jl*.
+
+* Also see Greg Wagner's package Isopycnal.jl (https://github.com/glwagner/Isopycnal.jl).
 
 # Requirements
 
@@ -34,7 +36,7 @@ The Julia code is designed to download input files from Google Drive (using Goog
 
 # Functions
 
-Available functions are listed in the documentation at https://ggebbie.github.io/SigmaShift.jl/dev/ .
+Available functions are listed in the documentation at https://ggebbie.github.io/IsopycnalSurfaces.jl/dev/ .
 
 # How this Julia package was started
 
@@ -62,12 +64,12 @@ Run the following Julia code
     ],
              )`
 
-`t("SigmaShift.jl")`
+`t("IsopycnalSurfaces.jl")`
 
 2. Make a new empty repository on GitHub.\
 	
 3. Then push this existing repository from the command line:
-    `git remote add origin git@github.com:ggebbie/SigmaShift.jl.git`\
+    `git remote add origin git@github.com:ggebbie/IsopycnalSurfaces.jl.git`\
     `git branch -M main`\
     `git push -u origin main`
 

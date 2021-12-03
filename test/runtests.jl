@@ -1,7 +1,7 @@
 using Revise
-using SigmaShift, Test
+using IsopycnalSurfaces, Test
 
-@testset "SigmaShift.jl" begin
+@testset "IsopycnalSurfaces.jl" begin
     #############################
     # Test dedup! function
     @testset "deduplication" begin
