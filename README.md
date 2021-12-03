@@ -18,9 +18,11 @@
 * After setting up the Julia environment (instructions below), check that all tests pass via the following shell command in the repository base directory:
 `julia --project=@. test/runtests.jl`
 
+* Also see Greg Wagner's package `Isopycnal.jl`.
+
 # Requirements
 
-Compatibility with the built-in tests requires Julia 1.6.x. 
+Compatibility with the built-in tests requires Julia 1.6+. 
 
 # Setting up project environment
 

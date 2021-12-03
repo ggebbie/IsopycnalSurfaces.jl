@@ -93,8 +93,9 @@ using SigmaShift, Test
         end
 
         @testset "3d_array_linear" begin
-            splorder = 100
-            varsσ = vars2sigma1(vars,pz,σ₁grid,splorder)
+            splorder = 3
+            linearinterp = true
+            varsσ = vars2sigma1(vars,pz,σ₁grid,splorder,linearinterp)
             xx = rand(1:nx); yy = rand(1:ny)
             @test isapprox(varsσ["p"][xx,yy,begin],pz[ztest[begin]])
             @test isapprox(varsσ["p"][xx,yy,end],pz[ztest[end]])

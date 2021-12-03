@@ -2,8 +2,9 @@ module SigmaShift
 
 using Dierckx, Interpolations
 
-export vars2sigma1, sigma1column, var2sigmacolumn, sigma1grid
-export mixinversions!, dedup!
+export sigma0column, sigma1column, sigma2column,
+ vars2sigma1,  var2sigmacolumn, sigma1grid,
+ mixinversions!, dedup!
 
 """
     function vars2sigma1(vars,p,sig1grid,γ,spline_order)
@@ -17,7 +18,7 @@ export mixinversions!, dedup!
 # Output
 - `varsσ::Dict{String,Array{T,3}`: dict of 3d arrays of variables on sigma1 surfaces
 """
-function vars2sigma1(vars::Dict{String,Array{T,3}},pressure::Vector{T},σ₁grid::Vector{T},splorder::Integer) where T<:AbstractFloat
+function vars2sigma1(vars::Dict{String,Array{T,3}},pressure::Vector{T},σ₁grid::Vector{T},splorder::Integer,linearinterp=false) where T<:AbstractFloat
 
     # is there a problem if pressure is not the same type as the input vars?
     # could introduce two parametric types to function definition above
@@ -86,12 +87,12 @@ function vars2sigma1(vars::Dict{String,Array{T,3}},pressure::Vector{T},σ₁grid
                 σ₁=sigma1column(vcol[θname][1:nw],vcol[Sname][1:nw],pressure[1:nw])
 
                 for (vckey,vcval) in vcol
-                    varσ = var2sigmacolumn(σ₁,vcval[1:nw],σ₁grid,splorder)
+                    varσ = var2sigmacolumn(σ₁,vcval[1:nw],σ₁grid,splorder,linearinterp)
                     [varsσ[vckey][xx,yy,ss] = convert(T,varσ[ss]) for ss = 1:nσ]
                 end
 
                 # do standard pressure by hand.
-                pσ = var2sigmacolumn(σ₁,pressure[1:nw],σ₁grid,splorder)
+                pσ = var2sigmacolumn(σ₁,pressure[1:nw],σ₁grid,splorder,linearinterp)
                 [varsσ["p"][xx,yy,ss] = convert(T,pσ[ss]) for ss = 1:nσ]
 
             end
@@ -114,30 +115,67 @@ end
 function sigmacolumn(θz::Vector{T},Sz::Vector{T},pz::Vector{T2},p0::Integer)::Vector{T} where T<:AbstractFloat where T2<:AbstractFloat
     nz = length(θz)
     σ = similar(θz)
-    #p0T = convert(T,p0)
     
-    # hard coded for sigma1
     σa,σb,σc = SeaWaterDensity(θz,Sz,pz,p0)
     [σ[zz] = convert(T,σc[zz]) .- 1000.0 for zz = 1:nz]
     return σ
 end
 
 """
+    function sigma0column(θ,S,p)
+    σ₀ for a water column
+    Untested for a mix of float values
+
+# Arguments
+- `θz::Vector{T}`: potential temperature
+- `Sz::Vector{T}`: practical salinity
+- `pz::Vector{T}`: vertical profile of standard pressures
+# Output
+- `σ₀`:  sigma-0 for wet points in column
+"""
+sigma0column(θz,Sz,pz) = sigmacolumn(θz,Sz,pz,0)
+
+"""
     function sigma1column(θ,S,p)
     σ₁ for a water column
+    Untested for a mix of float values
+
 # Arguments
-- `θz::Array{Float,1}}`: potential temperature
-- `Sz::Array{Float,1}}`: practical salinity
-- `pz::Array{Float,1}`: vertical profile of standard pressures
+- `θz::Vector{T}`: potential temperature
+- `Sz::Vector{T}`: practical salinity
+- `pz::Vector{T}`: vertical profile of standard pressures
 # Output
 - `σ₁`:  sigma-1 for wet points in column
 """
 sigma1column(θz,Sz,pz) = sigmacolumn(θz,Sz,pz,1000)
 
+"""
+    function sigma2column(θ,S,p)
+    σ₂ for a water column
+    Untested for a mix of float values
+
+# Arguments
+- `θz::Vector{T}`: potential temperature
+- `Sz::Vector{T}`: practical salinity
+- `pz::Vector{T}`: vertical profile of standard pressures
+# Output
+- `σ₂`:  sigma-2 for wet points in column
+"""
+sigma2column(θz,Sz,pz) = sigmacolumn(θz,Sz,pz,2000)
+
+"""
+   function notnanorzero
+
+     true is argument is not a NaN nor zero
+"""
 notnanorzero(z) = !iszero(z) && !isnan(z)
 
 """ function sigma1grid()
-    Standard choice of sigma1 surfaces
+    Standard (from Susan Wijffels, WHOI) choice of sigma1 surfaces
+# Arguments
+- `z`: value
+# Output
+- `σ₁grid`: list (vector) of σ₁ values
 """
 function sigma1grid()
     σ₁grida = 24:0.05:31
@@ -147,7 +185,6 @@ function sigma1grid()
     return σ₁grid
 end
 
-
 """
     function var2sigmacolumn(σ,v,σ₁grid,splorder)
     map θ,S, p onto σ₁ surfaces for a water column
@@ -156,14 +193,13 @@ end
 - `v::Array{Float,1}}`: variable of interest
 - `sig1`: σ surface values
 - `splorder`: 1-5, order of spline
+- `linearinterp`: optional argument, true to force linear interpolation
 # Output
 - `θonσ`: variable on sig1 sigma surfaces
 """
-function var2sigmacolumn(σorig::Vector{T},v,σgrid,splorder::Integer) where T<:AbstractFloat where T2<:AbstractFloat 
+function var2sigmacolumn(σorig::Vector{T},v,σgrid,splorder::Integer,linearinterp=false) where T<:AbstractFloat where T2<:AbstractFloat 
     # choose a univariate spline with s = magic number
     #θspl = Spline1D(σ₁,θz;k=splorder,s=length(σ₁))
-
-    linearinterp = false
 
     σ = copy(σorig) # make sure sigma-1 doesn't mutate and pass back
 
@@ -231,6 +267,17 @@ end
 
 """
 function mixinversions!(a,b)
+
+For values of `a` that are not increasing, 
+an inversion is defined.
+Average these values of a until values of `a` are sorted.
+Do the same averaging on the accompanying vector `b`.
+
+# Arguments
+- `a::Vector{T}`: a density variable
+- `b::Vector{T}`: an accompanying tracer variable
+
+Arguments are mutated by the function. 
 """
 function mixinversions!(a,b)
     while sum(diff(a).<=0) > 0
@@ -245,6 +292,16 @@ end
 
 """
 function dedup!(a,b)
+
+Remove values of `a` that are duplicates.
+Remove values of `b` that have the same location as the duplicates in `a`.
+The length of `a` and `b` should be identical before and after invoking this function. 
+
+# Arguments
+- `a::Vector{T}`: a density variable
+- `b::Vector{T}`: an accompanying tracer variable
+
+Arguments are mutated by the function. 
 """
 function dedup!(a,b)
     length(a) == 1 ? da = 1. : da = diff(a)
@@ -254,6 +311,19 @@ function dedup!(a,b)
     end
 end
 
+"""
+function dedup!(a,b)
+
+Remove the first duplicate of `a`.
+Remove the value of `b` that is located at the same entry as the first duplicate in `a`.
+The length of `a` and `b` should be identical before and after invoking this function. 
+
+# Arguments
+- `a::Vector{T}`: a density variable
+- `b::Vector{T}`: an accompanying tracer variable
+
+Arguments are mutated by the function. 
+"""
 function dedupfirst!(a,b)
     counter = 1
     da = diff(a) # requires length of 2 or more
@@ -273,13 +343,17 @@ isnotpositive(x) = (abs(x) == -x)
 
 
 """
-SeaWaterDensity(Θ,Σ,Π,Π0) from MITgcmTools.jl/PhysicalOceanography.jl Gael Forget
+SeaWaterDensity(Θ,Σ,Π,Π0) from MITgcmTools.jl/PhysicalOceanography.jl, From Gael Forget
+
 Compute potential density (ρP), in situ density (ρI), and density
 referenced to PREF (Π0 in decibars) from potential temperature (Θ in °C),
 salinity (Σ in psu) and pressure (Π in decibars) according to the
 UNESCO / Jackett & McDougall 1994 equation of state.
+
 Credits: code based on a Matlab implementation by B. Ferron
+
 Reference: https://www.jodc.go.jp/info/ioc_doc/UNESCO_tech/059832eb.pdf
+
 Check value: ρI = `1041.83267kg/m^3` for Θ=`3°Celcius`, Σ=`35psu`, Π=`3000dbar`
 ```
 (ρP,ρI,ρR) = SeaWaterDensity(3.,35.5,3000.)
