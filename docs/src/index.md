@@ -1,14 +1,14 @@
 ```@meta
-CurrentModule = SigmaShift
+CurrentModule = IsopycnalSurfaces
 ```
 
-# SigmaShift
+# IsopycnalSurfaces
 
-Documentation for [SigmaShift](https://github.com/ggebbie/SigmaShift.jl).
+Documentation for [IsopycnalSurfaces](https://github.com/ggebbie/IsopycnalSurfaces.jl).
 
 ```@index
 ```
 
 ```@autodocs
-Modules = [SigmaShift]
+Modules = [IsopycnalSurfaces]
 ```
