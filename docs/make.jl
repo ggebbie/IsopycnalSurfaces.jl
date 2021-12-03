@@ -1,16 +1,16 @@
-using SigmaShift
+using IsopycnalSurfaces
 using Documenter
 
-DocMeta.setdocmeta!(SigmaShift, :DocTestSetup, :(using SigmaShift); recursive=true)
+DocMeta.setdocmeta!(IsopycnalSurfaces, :DocTestSetup, :(using IsopycnalSurfaces); recursive=true)
 
 makedocs(;
-    modules=[SigmaShift],
+    modules=[IsopycnalSurfaces],
     authors="G Jake Gebbie",
-    repo="https://github.com/ggebbie/SigmaShift.jl/blob/{commit}{path}#{line}",
-    sitename="SigmaShift.jl",
+    repo="https://github.com/ggebbie/IsopycnalSurfaces.jl/blob/{commit}{path}#{line}",
+    sitename="IsopycnalSurfaces.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://ggebbie.github.io/SigmaShift.jl",
+        canonical="https://ggebbie.github.io/IsopycnalSurfaces.jl",
         assets=String[],
     ),
     pages=[
@@ -19,6 +19,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/ggebbie/SigmaShift.jl",
+    repo="github.com/ggebbie/IsopycnalSurfaces.jl",
     devbranch="main",
 )
