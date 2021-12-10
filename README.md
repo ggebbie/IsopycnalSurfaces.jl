@@ -26,11 +26,11 @@
 
 Compatibility with the built-in tests requires Julia 1.6+. 
 
-## Installation (from jrayshi)
+# Installation (from jrayshi)
 pkg> add IsopycnalSurfaces (not working)
 
 Optional:
-cd ./IsopycnalSurfaces.jl
+cd ./IsopycnalSurfaces.jl\
 pkg> activate .
 
 # Setting up project environment
