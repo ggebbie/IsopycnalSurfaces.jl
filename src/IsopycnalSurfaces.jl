@@ -141,7 +141,7 @@ end
 # Output
 - `σ₀`:  sigma-0 for wet points in column
 """
-sigma0column(θz,Sz,pz=missing) = ismissing(eos) ? sigmacolumn(θz,Sz,pz,0) : sigmacolumn(θz,Sz,pz,0,eos)
+sigma0column(θz,Sz,pz,eos=missing) = ismissing(eos) ? sigmacolumn(θz,Sz,pz,0) : sigmacolumn(θz,Sz,pz,0,eos)
 
 """
     function sigma1column(θ,S,p)
