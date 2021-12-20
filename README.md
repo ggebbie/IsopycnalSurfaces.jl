@@ -26,6 +26,13 @@
 
 Compatibility with the built-in tests requires Julia 1.6+. 
 
+# Installation (from jrayshi)
+pkg> add IsopycnalSurfaces (not working)
+
+Optional:
+cd ./IsopycnalSurfaces.jl\
+pkg> activate .
+
 # Setting up project environment
 
 Details about setting up a Julia environment are available at https://github.com/ggebbie/ECCOtour.jl#readme .
@@ -74,3 +81,11 @@ Run the following Julia code
     `git push -u origin main`
 
 4. Use Documenter.jl and DocumenterTools to automatically deploy documentation following: https://m3g.github.io/JuliaNotes.jl/stable/publish_docs/ .
+
+
+
+
+
+
+
+
