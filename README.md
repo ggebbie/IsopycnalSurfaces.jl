@@ -9,6 +9,10 @@
 
 * Core functionality: Take a profile (water column) of temperature and salinity on pressure or depth coordinates and transfer onto a vertical coordinate of density. 
 
+Equations of state include 
+-"EOS80" from UNESCO 1980 (Saunders et al. 1980)\
+-"JMD95" from Jackett and McDougall 1995, used with MITgcm
+
 * Other goals: Permit other properties besides temperature and salinity to be mapped onto depth. Allow 3D or 4D input fields. Allow various equations of state (partially implemented). 
 
 * This Julia package is in early development and breaking changes are expected.
@@ -26,8 +30,8 @@
 
 Compatibility with the built-in tests requires Julia 1.6+. 
 
-# Installation (from jrayshi)
-`pkg> add IsopycnalSurfaces` (see open Issue)
+# Installation
+`pkg> add IsopycnalSurfaces` (see open Issue \#12)
 
 Optional:
 `cd ./IsopycnalSurfaces.jl`\

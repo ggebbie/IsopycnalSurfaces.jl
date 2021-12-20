@@ -14,11 +14,12 @@ export sigma0column, sigma1column, sigma2column,
 - `p::Array{T,1}` : vertical profile of standard pressures
 - `sig1grid`: σ₁ surface values
 - `γ`: grid description needed for preallocation
-- `splorder`: 1-5, order of spline
+- `splorder`: 1-5, order of spline, optional keyword argument, default=3
+- `linearinterp`: optional keyword logical argument, default=false
 # Output
 - `varsσ::Dict{String,Array{T,3}`: dict of 3d arrays of variables on sigma1 surfaces
 """
-function vars2sigma1(vars::Dict{String,Array{T,3}},pressure::Vector{T},σ₁grid::Vector{T},splorder::Integer,linearinterp=false) where T<:AbstractFloat
+function vars2sigma1(vars::Dict{String,Array{T,3}},pressure::Vector{T},σ₁grid::Vector{T};splorder=3,linearinterp=false) where T<:AbstractFloat
 
     # is there a problem if pressure is not the same type as the input vars?
     # could introduce two parametric types to function definition above
@@ -87,12 +88,12 @@ function vars2sigma1(vars::Dict{String,Array{T,3}},pressure::Vector{T},σ₁grid
                 σ₁=sigma1column(vcol[θname][1:nw],vcol[Sname][1:nw],pressure[1:nw])
 
                 for (vckey,vcval) in vcol
-                    varσ = var2sigmacolumn(σ₁,vcval[1:nw],σ₁grid,splorder,linearinterp)
+                    varσ = var2sigmacolumn(σ₁,vcval[1:nw],σ₁grid,splorder=splorder,linearinterp=linearinterp)
                     [varsσ[vckey][xx,yy,ss] = convert(T,varσ[ss]) for ss = 1:nσ]
                 end
 
                 # do standard pressure by hand.
-                pσ = var2sigmacolumn(σ₁,pressure[1:nw],σ₁grid,splorder,linearinterp)
+                pσ = var2sigmacolumn(σ₁,pressure[1:nw],σ₁grid,splorder=splorder,linearinterp=linearinterp)
                 [varsσ["p"][xx,yy,ss] = convert(T,pσ[ss]) for ss = 1:nσ]
 
             end
@@ -112,14 +113,14 @@ end
 # Output
 - `σ::Vector{T}`:  sigma for wet points in column
 """
-function sigmacolumn(θz::Vector{T},Sz::Vector{T},pz::Vector{T2},p0::Integer, eos=missing)::Vector{T} where T<:AbstractFloat where T2<:AbstractFloat
+function sigmacolumn(θz::Vector{T},Sz::Vector{T},pz::Vector{T2},p0::Integer, eos="EOS80")::Vector{T} where T<:AbstractFloat where T2<:AbstractFloat
     nz = length(θz)
     σ = similar(θz)
     
     # choose EOS method, added by Ray Dec 09 2021
-    if ismissing(eos)
+    if eos == "EOS80" # unesco, saunders et al., 1980
         σ = density.(Sz,θz,p0) .- 1000.
-    elseif eos == "EOS94"
+    elseif eos == "JMD95" # Jackett McDougall 1995, JAOT
         σa,σb,σc = SeaWaterDensity(θz,Sz,pz,p0)
         [σ[zz] = convert(T,σc[zz]) .- 1000.0 for zz = 1:nz]
     else
@@ -195,18 +196,18 @@ function sigma1grid()
 end
 
 """
-    function var2sigmacolumn(σ,v,σ₁grid,splorder)
+    function var2sigmacolumn(σ,v,σ₁grid;splorder,linearinterp)
     map θ,S, p onto σ₁ surfaces for a water column
 # Arguments
 - `σ`::Array{Float,1}}`: sigma values of input variable
 - `v::Array{Float,1}}`: variable of interest
 - `sig1`: σ surface values
-- `splorder`: 1-5, order of spline
-- `linearinterp`: optional argument, true to force linear interpolation
+- `splorder`: optional argument of 1-5, order of spline, default=3
+- `linearinterp`: optional argument, true to force linear interpolation, default=false
 # Output
 - `θonσ`: variable on sig1 sigma surfaces
 """
-function var2sigmacolumn(σorig::Vector{T},v,σgrid,splorder::Integer,linearinterp=false) where T<:AbstractFloat where T2<:AbstractFloat 
+function var2sigmacolumn(σorig::Vector{T},v,σgrid; splorder=3,linearinterp=false) where T<:AbstractFloat where T2<:AbstractFloat 
     # choose a univariate spline with s = magic number
     #θspl = Spline1D(σ₁,θz;k=splorder,s=length(σ₁))
 
@@ -553,8 +554,5 @@ function secant_bulk_modulus(S,T,p)
 
     return K
 end
-
-
-
 
 end
