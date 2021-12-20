@@ -9,7 +9,7 @@
 
 * Core functionality: Take a profile (water column) of temperature and salinity on pressure or depth coordinates and transfer onto a vertical coordinate of density. 
 
-* Other goals: Permit other properties besides temperature and salinity to be mapped onto depth. Allow 3D or 4D input fields. Allow various equations of state (not implemented yet). 
+* Other goals: Permit other properties besides temperature and salinity to be mapped onto depth. Allow 3D or 4D input fields. Allow various equations of state (partially implemented). 
 
 * This Julia package is in early development and breaking changes are expected.
 
@@ -27,11 +27,11 @@
 Compatibility with the built-in tests requires Julia 1.6+. 
 
 # Installation (from jrayshi)
-pkg> add IsopycnalSurfaces (not working)
+`pkg> add IsopycnalSurfaces` (see open Issue)
 
 Optional:
-cd ./IsopycnalSurfaces.jl\
-pkg> activate .
+`cd ./IsopycnalSurfaces.jl`\
+`pkg> activate .`
 
 # Setting up project environment
 
@@ -81,11 +81,3 @@ Run the following Julia code
     `git push -u origin main`
 
 4. Use Documenter.jl and DocumenterTools to automatically deploy documentation following: https://m3g.github.io/JuliaNotes.jl/stable/publish_docs/ .
-
-
-
-
-
-
-
-

@@ -47,9 +47,10 @@ using IsopycnalSurfaces, Test
         end
 
         @testset "column_linear" begin
-            splorder = 100
+            splorder = 3
+            linearinterp = true
             sgood = findall(minimum(σ₁) .<= σ₁grid .<= maximum(σ₁))
-            pσ = var2sigmacolumn(σ₁,pz,σ₁grid[sgood],splorder)
+            pσ = var2sigmacolumn(σ₁,pz,σ₁grid[sgood],splorder,linearinterp)
 
             @test isapprox(pσ[begin],pz[ztest[begin]])
             @test isapprox(pσ[end],pz[ztest[end]])
@@ -100,5 +101,17 @@ using IsopycnalSurfaces, Test
             @test isapprox(varsσ["p"][xx,yy,begin],pz[ztest[begin]])
             @test isapprox(varsσ["p"][xx,yy,end],pz[ztest[end]])
         end
-    end
+
+        @testset "EOS" begin
+            # just check that this runs
+            # would be better to show some similarity in results
+            
+            println("Using the EOS from MITgcmTools.jl:")
+            display(sigma2column(θz,Sz,pz,"EOS94")) # using the EOS from MITgcmTools.jl
+            println("")
+            println("Default, using the EOS from PhysOcean.jl/EOS80.jl:")
+            display(sigma2column(θz,Sz,pz))  # default, using the EOS from PhysOcean.jl/EOS80.jl
+
+        end # EOS
+    end # column
 end
