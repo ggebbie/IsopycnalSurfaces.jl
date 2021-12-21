@@ -5,26 +5,40 @@
 [![Build Status](https://github.com/ggebbie/IsopycnalSurfaces.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/ggebbie/IsopycnalSurfaces.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/ggebbie/IsopycnalSurfaces.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/ggebbie/IsopycnalSurfaces.jl)
 
-* IsopycnalSurfaces.jl was originally started by G Jake Gebbie as a part of the ECCOtour.jl package (https://github.com/ggebbie/ECCOtour.jl)
+* IsopycnalSurfaces.jl was originally started by G Jake Gebbie as a part of the [ECCOtour.jl](https://github.com/ggebbie/ECCOtour.jl) package
 
-* Core functionality: Take a profile (water column) of temperature and salinity on pressure or depth coordinates and transfer onto a vertical coordinate of density. 
+* Core functionality: Take a profile (water column) of temperature and salinity on pressure coordinates and transfer onto a vertical coordinate of density
 
-Equations of state include 
--"EOS80" from UNESCO 1980 (Saunders et al. 1980)\
--"JMD95" from Jackett and McDougall 1995, used with MITgcm
+* Main interface:
 
-* Other goals: Permit other properties besides temperature and salinity to be mapped onto depth. Allow 3D or 4D input fields. Allow various equations of state (partially implemented). 
+`function vars2sigma(vars,p,p₀,σgrid;spline_order,linearinterp,eos)`\
+Input a Dictionary of variables (`vars`) that may have 1D or 3D arrays, \
+a 1D vertical input coordinate (`p`), the reference pressure (`p₀`), \
+the output vertical grid (`σgrid`). Optional keyword arguments are 
+the order of spline interpolation (`splorder`), a logical argument to force linear interpolation (`linearinterp`), and the equation of state type (`eos`). All variables are output to a Dictionary on isopycnal surfaces (`varsσ`).
+	
+* Equations of state include\
+- "EOS80" from UNESCO 1980 (Saunders et al. 1980)\
+- "JMD95" from Jackett and McDougall 1995, used with MITgcm\
+
+* Future work: 
+- Allow 3D or 4D input fields
+- Permit input vertical coordinate to be pressure or depth
+- Equation of state "TEOS10" from IOC et al. 2010
 
 * This Julia package is in early development and breaking changes are expected.
 
 * See the function list in the documentation linked through the badge above
 
 * After setting up the Julia environment (instructions below), check that all tests pass via the following shell command in the repository base directory:
-`julia --project=@. test/runtests.jl`
+`julia --project=@. test/runtests.jl`\
+
+Or test by going to the package manager of the REPL: `]`\
+Then type `test IsopycnalSurfaces`
 
 * This project was originally called *SigmaShift.jl*.
 
-* Also see Greg Wagner's package Isopycnal.jl (https://github.com/glwagner/Isopycnal.jl).
+* Also see Greg Wagner's package [Isopycnal.jl](https://github.com/glwagner/Isopycnal.jl).
 
 # Requirements
 
@@ -77,7 +91,7 @@ Run the following Julia code
 
 `t("IsopycnalSurfaces.jl")`
 
-2. Make a new empty repository on GitHub.\
+2. Make a new empty repository on GitHub.
 	
 3. Then push this existing repository from the command line:
     `git remote add origin git@github.com:ggebbie/IsopycnalSurfaces.jl.git`\
