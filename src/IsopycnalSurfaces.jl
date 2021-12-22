@@ -7,7 +7,7 @@ export sigma0column, sigma1column, sigma2column,
  mixinversions!, dedup!, density, sigmacolumn
 
 """
-    function vars2sigma1(vars,p,p₀,σgrid;spline_order,linearinterp,eos)
+    function vars2sigma1(vars,p,σgrid;spline_order,linearinterp,eos)
     map variables from regular 3D grid onto σ₀ surfaces
 # Arguments
 - `vars::Dict{String,Array{T,3}}}`: dict of 3d arrays
@@ -22,7 +22,7 @@ export sigma0column, sigma1column, sigma2column,
 vars2sigma0(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="EOS80") = vars2sigma(vars,pressure,0,σgrid,splorder=splorder,linearinterp=linearinterp,eos=eos) 
 
 """
-    function vars2sigma1(vars,p,p₀,σgrid;spline_order,linearinterp,eos)
+    function vars2sigma1(vars,p,σgrid;spline_order,linearinterp,eos)
     map variables from regular 3D grid onto σ₁ surfaces
 # Arguments
 - `vars::Dict{String,Array{T,3}}}`: dict of 3d arrays
@@ -37,7 +37,7 @@ vars2sigma0(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="EOS80") = va
 vars2sigma1(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="EOS80") = vars2sigma(vars,pressure,1000,σgrid,splorder=splorder,linearinterp=linearinterp,eos=eos) 
 
 """
-    function vars2sigma2(vars,p,p₀,σgrid;spline_order,linearinterp,eos)
+    function vars2sigma2(vars,p,σgrid;spline_order,linearinterp,eos)
     map variables from regular 3D grid onto σ₂ surfaces
 # Arguments
 - `vars::Dict{String,Array{T,3}}}`: dict of 3d arrays
