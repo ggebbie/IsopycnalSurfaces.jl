@@ -168,7 +168,7 @@ function sigmacolumn(θz::Vector{T},Sz::Vector{T},pz::Vector{T2},p₀, dorp="pre
     if dorp == "pressure"
 
     elseif dorp == "depth"
-        pz = gsw_p_from_z.(-pz, 30) #use 30deg lat as the default location to convert depth to pressure
+        pz = gsw_p_from_z.(-pz, 30) #use 30deg lat as the default location to convert depth to pressure, from GibbsSeaWater.jl
     else
         error("Unsupported argument, please enter pressure or depth.")
     end
