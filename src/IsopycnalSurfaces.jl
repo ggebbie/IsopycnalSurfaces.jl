@@ -65,7 +65,7 @@ vars2sigma2(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="Gibbs") = va
 # Output
 - `varsσ::Dict{String,Array{T,3}`: dict of 3d arrays of variables on sigma1 surfaces
 """
-function vars2sigma(vars::Dict{String,Array{T,3}},pressure::Vector{T},p₀::Integer,σgrid::Vector{T};splorder=3,linearinterp=false,eos="Gibbs") where T<:AbstractFloat
+function vars2sigma(vars::Dict{String,Array{T,3}},pressure::Vector{T},p₀::Integer,σgrid::Vector{T};splorder=3,linearinterp=false, dorp="pressure",eos="Gibbs") where T<:AbstractFloat
 
     # is there a problem if pressure is not the same type as the input vars?
     # could introduce two parametric types to function definition above
@@ -131,7 +131,7 @@ function vars2sigma(vars::Dict{String,Array{T,3}},pressure::Vector{T},p₀::Inte
             if nw > 3
                 # incurs error if splorder > number of points in column
                 # if nw > splorder #need >=n+1 points to do order-n interpolation
-                σ=sigmacolumn(vcol[θname][1:nw],vcol[Sname][1:nw],pressure[1:nw],p₀,eos)
+                σ=sigmacolumn(vcol[θname][1:nw],vcol[Sname][1:nw],pressure[1:nw],p₀,dorp,eos)
 
                 for (vckey,vcval) in vcol
                     varσ = var2sigmacolumn(σ,vcval[1:nw],σgrid,splorder=splorder,linearinterp=linearinterp)
@@ -149,13 +149,14 @@ function vars2sigma(vars::Dict{String,Array{T,3}},pressure::Vector{T},p₀::Inte
 end
 
 """
-    function sigmacolumn(θ,S,p,p0,eos="Gibbs")
+    function sigmacolumn(θ,S,p,p0,dorp="pressure",eos="Gibbs")
     σ for a water column
 # Arguments
 - `θz::Vector{T}`: potential temperature
 - `Sz::Vector{T}`: practical salinity
 - `pz::Vector{T}`: vertical profile of standard pressures in decibar, or ocean depth in meter
 - `p₀`: reference pressure
+- `dorp:String`: pressure coordinate (default) or depth coordinate
 - `eos:String`: optional argument for equation of state, default = "EOS80"
 # Output
 - `σ::Vector{T}`:  sigma for wet points in column
@@ -193,7 +194,7 @@ function sigmacolumn(θz::Vector{T},Sz::Vector{T},pz::Vector{T2},p₀, dorp="pre
 end
 
 """
-    function sigma0column(θ,S,p)
+    function sigma0column(θ,S,p;dorp="pressure",eos="Gibbs")
     σ₀ for a water column
     Untested for a mix of float values
 
@@ -207,7 +208,7 @@ end
 sigma0column(θz,Sz,pz,dorp="pressure",eos="Gibbs") = sigmacolumn(θz,Sz,pz,0,dorp,eos)
 
 """
-    function sigma1column(θ,S,p;eos="Gibbs")
+    function sigma1column(θ,S,p;dorp="pressure",eos="Gibbs")
     σ₁ for a water column
     Untested for a mix of float values
 
@@ -223,7 +224,7 @@ sigma0column(θz,Sz,pz,dorp="pressure",eos="Gibbs") = sigmacolumn(θz,Sz,pz,0,do
 sigma1column(θz,Sz,pz,dorp="pressure",eos="Gibbs") = sigmacolumn(θz,Sz,pz,1000,dorp,eos)
 
 """
-    function sigma2column(θ,S,p)
+    function sigma2column(θ,S,p;dorp="pressure",eos="Gibbs")
     σ₂ for a water column
     Untested for a mix of float values
 
