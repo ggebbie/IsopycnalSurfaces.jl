@@ -78,15 +78,14 @@ function vars2sigma(vars::Dict{String,Array{T,3}},pressure::Vector{T},p₀::Inte
 
     θname = string()
 
-    nx = Integer(); ny = Integer(); nz = Integer()
-    
     for k in θkeys
         if haskey(vars,k)
-            nx,ny,nz = size(vars[k])
             θname = k
         end
     end
+
     θname == "" && error("Potential temperature missing")
+    nx,ny,nz = size(vars[θname])
 
     Sname = string()
     for k in Skeys
@@ -167,9 +166,9 @@ function sigmacolumn(θz::Vector{T},Sz::Vector{T},pz::Vector{T2},p₀, eos="EOS8
     
     # choose EOS method, added by Ray Dec 09 2021
     if eos == "EOS80" # unesco, saunders et al., 1980
-        σ = density.(Sz,θz,p₀) .- 1000.0
+        σ = densityEOS80.(Sz,θz,p₀) .- 1000.0
     elseif eos == "JMD95" # Jackett McDougall 1995, JAOT
-        σa,σb,σc = SeaWaterDensity(θz,Sz,pz,p₀)
+        σa,σb,σc = densityJMD95(θz,Sz,pz,p₀)
         [σ[zz] = convert(T,σc[zz]) .- 1000.0 for zz = 1:nz]
     else
         error("The entered EOS is not supported currently, please try the supported one, like EOS80")
@@ -404,7 +403,7 @@ isnotpositive(x) = (abs(x) == -x)
 
 
 """
-SeaWaterDensity(Θ,Σ,Π,Π0) from MITgcmTools.jl/PhysicalOceanography.jl, From Gael Forget
+densityJMD95(Θ,Σ,Π,Π0) from MITgcmTools.jl/PhysicalOceanography.jl SeawaterDensity, From Gael Forget
 
 Compute potential density (ρP), in situ density (ρI), and density
 referenced to PREF (Π0 in decibars) from potential temperature (Θ in °C),
@@ -421,7 +420,7 @@ Check value: ρI = `1041.83267kg/m^3` for Θ=`3°Celcius`, Σ=`35psu`, Π=`3000d
 isapprox(ρI,1041.83267, rtol=1e-6)
 ```
 """
-function SeaWaterDensity(Θ,Σ,Π,Π0=missing)
+function densityJMD95(Θ,Σ,Π,Π0=missing)
 
    #square root salinity
    sqrtΣ= sqrt.(Σ)
@@ -466,10 +465,8 @@ function SeaWaterDensity(Θ,Σ,Π,Π0=missing)
    return ρP,ρI,ρR
 end
 
-
-
 """
-density(S,T,p) and dependent functions from PhysOcean.jl/EOS80.jl, From Alexander Barth
+densityEOS80(S,T,p) and dependent functions from PhysOcean.jl/EOS80.jl, From Alexander Barth
 
 Compute the density of sea-water (kg/m³) at the salinity `S` (psu, PSS-78), temperature `T` (degree Celsius, ITS-90) and pressure `p` (decibar) using the UNESCO 1983 polynomial.
 
@@ -478,11 +475,11 @@ http://web.archive.org/web/20170103000527/http://unesdoc.unesco.org/images/0005/
 
 ```
 Check value: ρI = `1041.87651kg/m^3` for Θ=`3°Celcius`, Σ=`35.5psu`, Π=`3000dbar`
-ρI = density(35.5, 3, 3000)
+ρI = densityEOS80(35.5, 3, 3000)
 ```
 added by Ray, Dec 09, 2021
 """
-function density(S,T,p)
+function densityEOS80(S,T,p)
     ρ = density0(S,T)
 
     if (p == 0)

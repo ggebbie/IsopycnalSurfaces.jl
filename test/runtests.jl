@@ -97,7 +97,6 @@ using IsopycnalSurfaces, Test
                 @testset "3d_array_linear" begin
                     #splorder = 3
                     varsσ = vars2sigma1(vars,pz,σ₁grid,linearinterp=true,eos=eos)
-                    #varsσ = vars2sigma1(vars,pz,σ₁grid,splorder,linearinterp)
                     xx = rand(1:nx); yy = rand(1:ny)
                     @test isapprox(varsσ["p"][xx,yy,begin],pz[ztest[begin]])
                     @test isapprox(varsσ["p"][xx,yy,end],pz[ztest[end]])
