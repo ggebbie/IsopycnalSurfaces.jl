@@ -1,10 +1,10 @@
 module IsopycnalSurfaces
 
-using Dierckx, Interpolations
+using Dierckx, Interpolations, GibbsSeaWater
 
 export sigma0column, sigma1column, sigma2column,
  vars2sigma, vars2sigma0, vars2sigma1, vars2sigma2,  var2sigmacolumn, sigma1grid,
- mixinversions!, dedup!, density, sigmacolumn
+ mixinversions!, dedup!, density, sigmacolumn, SeaWaterDensity
 
 """
     function vars2sigma1(vars,p,σgrid;spline_order,linearinterp,eos)
@@ -19,7 +19,7 @@ export sigma0column, sigma1column, sigma2column,
 # Output
 - `varsσ::Dict{String,Array{T,3}`: dict of 3d arrays of variables on sigma1 surfaces
 """
-vars2sigma0(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="EOS80") = vars2sigma(vars,pressure,0,σgrid,splorder=splorder,linearinterp=linearinterp,eos=eos) 
+vars2sigma0(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="Gibbs") = vars2sigma(vars,pressure,0,σgrid,splorder=splorder,linearinterp=linearinterp,eos=eos) 
 
 """
     function vars2sigma1(vars,p,σgrid;spline_order,linearinterp,eos)
@@ -34,7 +34,7 @@ vars2sigma0(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="EOS80") = va
 # Output
 - `varsσ::Dict{String,Array{T,3}`: dict of 3d arrays of variables on sigma1 surfaces
 """
-vars2sigma1(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="EOS80") = vars2sigma(vars,pressure,1000,σgrid,splorder=splorder,linearinterp=linearinterp,eos=eos) 
+vars2sigma1(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="Gibbs") = vars2sigma(vars,pressure,1000,σgrid,splorder=splorder,linearinterp=linearinterp,eos=eos) 
 
 """
     function vars2sigma2(vars,p,σgrid;spline_order,linearinterp,eos)
@@ -49,7 +49,7 @@ vars2sigma1(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="EOS80") = va
 # Output
 - `varsσ::Dict{String,Array{T,3}`: dict of 3d arrays of variables on sigma1 surfaces
 """
-vars2sigma2(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="EOS80") = vars2sigma(vars,pressure,2000,σgrid,splorder=splorder,linearinterp=linearinterp,eos=eos) 
+vars2sigma2(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="Gibbs") = vars2sigma(vars,pressure,2000,σgrid,splorder=splorder,linearinterp=linearinterp,eos=eos) 
 
 """
     function vars2sigma(vars,p,p₀,σgrid;spline_order,linearinterp,eos)
@@ -65,7 +65,7 @@ vars2sigma2(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="EOS80") = va
 # Output
 - `varsσ::Dict{String,Array{T,3}`: dict of 3d arrays of variables on sigma1 surfaces
 """
-function vars2sigma(vars::Dict{String,Array{T,3}},pressure::Vector{T},p₀::Integer,σgrid::Vector{T};splorder=3,linearinterp=false,eos="EOS80") where T<:AbstractFloat
+function vars2sigma(vars::Dict{String,Array{T,3}},pressure::Vector{T},p₀::Integer,σgrid::Vector{T};splorder=3,linearinterp=false, dorp="pressure",eos="Gibbs") where T<:AbstractFloat
 
     # is there a problem if pressure is not the same type as the input vars?
     # could introduce two parametric types to function definition above
@@ -130,7 +130,7 @@ function vars2sigma(vars::Dict{String,Array{T,3}},pressure::Vector{T},p₀::Inte
             if nw > 3
                 # incurs error if splorder > number of points in column
                 # if nw > splorder #need >=n+1 points to do order-n interpolation
-                σ=sigmacolumn(vcol[θname][1:nw],vcol[Sname][1:nw],pressure[1:nw],p₀,eos)
+                σ=sigmacolumn(vcol[θname][1:nw],vcol[Sname][1:nw],pressure[1:nw],p₀,dorp,eos)
 
                 for (vckey,vcval) in vcol
                     varσ = var2sigmacolumn(σ,vcval[1:nw],σgrid,splorder=splorder,linearinterp=linearinterp)
@@ -148,37 +148,52 @@ function vars2sigma(vars::Dict{String,Array{T,3}},pressure::Vector{T},p₀::Inte
 end
 
 """
-    function sigmacolumn(θ,S,p,p0,eos="EOS80")
+    function sigmacolumn(θ,S,p,p0,dorp="pressure",eos="Gibbs")
     σ for a water column
 # Arguments
 - `θz::Vector{T}`: potential temperature
 - `Sz::Vector{T}`: practical salinity
-- `pz::Vector{T}`: vertical profile of standard pressures
+- `pz::Vector{T}`: vertical profile of standard pressures in decibar, or ocean depth in meter
 - `p₀`: reference pressure
+- `dorp:String`: pressure coordinate (default) or depth coordinate
 - `eos:String`: optional argument for equation of state, default = "EOS80"
 # Output
 - `σ::Vector{T}`:  sigma for wet points in column
 """
-function sigmacolumn(θz::Vector{T},Sz::Vector{T},pz::Vector{T2},p₀, eos="EOS80")::Vector{T} where T<:AbstractFloat where T2<:AbstractFloat
+function sigmacolumn(θz::Vector{T},Sz::Vector{T},pz::Vector{T2},p₀, dorp="pressure", eos="Gibbs")::Vector{T} where T<:AbstractFloat where T2<:AbstractFloat
 
     nz = length(θz)
     σ = similar(θz)
     
+    if dorp == "pressure"
+
+    elseif dorp == "depth"
+        pz = gsw_p_from_z.(-pz, 30) #use 30deg lat as the default location to convert depth to pressure, from GibbsSeaWater.jl
+    else
+        error("Unsupported argument, please enter pressure or depth.")
+    end
+
     # choose EOS method, added by Ray Dec 09 2021
     if eos == "EOS80" # unesco, saunders et al., 1980
         σ = densityEOS80.(Sz,θz,p₀) .- 1000.0
     elseif eos == "JMD95" # Jackett McDougall 1995, JAOT
         σa,σb,σc = densityJMD95(θz,Sz,pz,p₀)
         [σ[zz] = convert(T,σc[zz]) .- 1000.0 for zz = 1:nz]
-    else
-        error("The entered EOS is not supported currently, please try the supported one, like EOS80")
+    elseif eos == "Gibbs"
+        # argument about using GibbsSeaWater.jl, added by Ray Dec 29, 2021
+        # "GibbsSeaWater.jl is a Julia wrapper for GSW-C#master, which is the C implementation of the Thermodynamic Equation of Seawater 2010 (TEOS-10)."
+        SA = gsw_sa_from_sp.(Sz,pz,0,30)  #  here we use the fixed location, lon=0deg,lat=30deg, to convert practical S to absolute S
+        CT = gsw_ct_from_pt.(SA ,θz) # Conservative T from (Absolute S, sigma0)
+        σ = gsw_rho.(SA, CT,p₀) .- 1000.
+    else 
+        error("The entered EOS is not supported currently, please try the supported one, like EOS80, JMD95, Gibbs")
     end
 
     return σ
 end
 
 """
-    function sigma0column(θ,S,p)
+    function sigma0column(θ,S,p;dorp="pressure",eos="Gibbs")
     σ₀ for a water column
     Untested for a mix of float values
 
@@ -189,10 +204,10 @@ end
 # Output
 - `σ₀`:  sigma-0 for wet points in column
 """
-sigma0column(θz,Sz,pz,eos="EOS80") = sigmacolumn(θz,Sz,pz,0,eos)
+sigma0column(θz,Sz,pz,dorp="pressure",eos="Gibbs") = sigmacolumn(θz,Sz,pz,0,dorp,eos)
 
 """
-    function sigma1column(θ,S,p;eos="EOS80")
+    function sigma1column(θ,S,p;dorp="pressure",eos="Gibbs")
     σ₁ for a water column
     Untested for a mix of float values
 
@@ -205,10 +220,10 @@ sigma0column(θz,Sz,pz,eos="EOS80") = sigmacolumn(θz,Sz,pz,0,eos)
 - `σ₁`:  sigma-1 for wet points in column
 """
 #sigma1column(θz,Sz,pz,eos=missing) = ismissing(eos) ? sigmacolumn(θz,Sz,pz,1000) : sigmacolumn(θz,Sz,pz,1000,eos)
-sigma1column(θz,Sz,pz,eos="EOS80") = sigmacolumn(θz,Sz,pz,1000,eos)
+sigma1column(θz,Sz,pz,dorp="pressure",eos="Gibbs") = sigmacolumn(θz,Sz,pz,1000,dorp,eos)
 
 """
-    function sigma2column(θ,S,p)
+    function sigma2column(θ,S,p;dorp="pressure",eos="Gibbs")
     σ₂ for a water column
     Untested for a mix of float values
 
@@ -221,7 +236,7 @@ sigma1column(θz,Sz,pz,eos="EOS80") = sigmacolumn(θz,Sz,pz,1000,eos)
 """
 # revised by Ray, Dec 09 2021
 #sigma2column(θz,Sz,pz,eos=missing) = ismissing(eos) ? sigmacolumn(θz,Sz,pz,2000) : sigmacolumn(θz,Sz,pz,2000,eos)
-sigma2column(θz,Sz,pz,eos="EOS80") = sigmacolumn(θz,Sz,pz,2000,eos)
+sigma2column(θz,Sz,pz,dorp="pressure",eos="Gibbs") = sigmacolumn(θz,Sz,pz,2000,dorp,eos)
 
 """
    function notnanorzero
