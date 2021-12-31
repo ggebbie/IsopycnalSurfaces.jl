@@ -19,8 +19,8 @@ the output vertical grid (`σgrid`). Optional keyword arguments are
 the order of spline interpolation (`splorder`), a logical argument to force linear interpolation (`linearinterp`), and the equation of state type (`eos`). All variables are output to a Dictionary on isopycnal surfaces (`varsσ`).
 
 # Equations of state 
-- "EOS80" from UNESCO 1980 (Saunders et al. 1980), following  gher-ulg/PhysOcean.jl \
-- "JMD95" from Jackett and McDougall 1995, following gaelforget/MITgcmTools.jl\
+- "EOS80" from UNESCO 1980 (Saunders et al. 1980), following  gher-ulg/PhysOcean.jl 
+- "JMD95" from Jackett and McDougall 1995, following gaelforget/MITgcmTools.jl
 
 # Documentation and tests
 
@@ -29,10 +29,11 @@ the order of spline interpolation (`splorder`), a logical argument to force line
 * See the function list in the documentation linked through the badge above
 
 * After setting up the Julia environment (instructions below), check that all tests pass via the following shell command in the repository base directory:
-`julia --project=@. test/runtests.jl`\
+`julia --project=@. test/runtests.jl`
 
-Or test by going to the package manager of the REPL: `]`\
-Then type `test IsopycnalSurfaces`
+Or test by going to the package manager of the REPL:\
+`]`\
+`test IsopycnalSurfaces`
 
 * This project was originally called *SigmaShift.jl*.
 
@@ -44,11 +45,9 @@ Then type `test IsopycnalSurfaces`
 Compatibility with the built-in tests requires Julia 1.6+. 
 
 # Installation
-`pkg> add IsopycnalSurfaces` (see open Issue \#12)
 
-Optional:
-`cd ./IsopycnalSurfaces.jl`\
-`pkg> activate .`
+The usual way for a package in the Julia general registry:/
+`pkg> add IsopycnalSurfaces` 
 
 # Setting up project environment
 
@@ -56,7 +55,7 @@ Details about setting up a Julia environment are available [here](https://github
 
 # Data files
 
-The Julia code is designed to download input files from Google Drive (using GoogleDrive.jl) and to place them in the `data` directory. 
+The Julia code is designed to download input files from Google Drive (using [GoogleDrive.jl](https://github.com/tejasvaidhyadev/GoogleDrive.jl)) and to place them in the `data` directory. 
 
 # Functions
 
@@ -100,7 +99,7 @@ Run the following Julia code
 
 2. Make a new empty repository on GitHub.
 	
-3. Then push this existing repository from the command line:
+3. Then push this existing repository from the command line:\
     `git remote add origin git@github.com:ggebbie/IsopycnalSurfaces.jl.git`\
     `git branch -M main`\
     `git push -u origin main`
