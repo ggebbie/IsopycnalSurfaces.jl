@@ -37,7 +37,7 @@ vars2sigma0(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="TEOS10") = v
 # Output
 - `varsσ::Dict{String,Array{T,3}`: dict of 3d arrays of variables on sigma1 surfaces
 """
-vars2sigma1(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="TEOS10") = vars2sigma(vars,pressure,1000,σgrid,splorder=splorder,linearinterp=linearinterp,eos=eos) 
+vars2sigma1(vars,σgrid;p=Vector{T}(),splorder=3,linearinterp=false,eos="TEOS10") = vars2sigma(vars,σgrid,1000,p=p,splorder=splorder,linearinterp=linearinterp,eos=eos) 
 
 """
     function vars2sigma2(vars,p,σgrid;spline_order,linearinterp,eos)
@@ -68,12 +68,12 @@ vars2sigma2(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="TEOS10") = v
 # Output
 - `varsσ::Dict{String,Array{T,3}`: dict of 3d arrays of variables on sigma1 surfaces
 """
-function vars2sigma(vars::Dict{String,Array{T,3}},σgrid::Vector{T},p₀::Integer;p=Vector{T}(),z=Vector{T}(),splorder=3,linearinterp=false,eos="TEOS10",lat=30.) where T<:AbstractFloat
+function vars2sigma(vars::Dict{Symbol,Array{T,3}},σgrid::Vector{T},p₀::Integer;p=Vector{T}(),z=Vector{T}(),splorder=3,linearinterp=false,eos="TEOS10",lat=30.) where T<:AbstractFloat
 
     # θ and S must exist
 
     # determine which standard variables are present in Dict
-    names = inputcheck(vars)
+    names,nx,ny,nz = inputcheck(vars)
 
     # handle the vertical coordinate
 
@@ -103,13 +103,14 @@ function vars2sigma(vars::Dict{String,Array{T,3}},σgrid::Vector{T},p₀::Intege
 
         # use symbols if input used symbols
         if eltype(keys(names)) == Symbol
-            varsσ[:p] = fill(convert(T,NaN),(nx,ny,nσ))
+            names[:p] = :p
         elseif eltype(keys(names)) == String
-            varsσ["p"] = fill(convert(T,NaN),(nx,ny,nσ))
+            names[:p] = "p"
         else
             error("unknown key type for input dictionary")
         end
-            
+        varsσ[names[:p]] = fill(convert(T,NaN),(nx,ny,nσ))
+        
     end
 
     for xx = 1:nx
@@ -119,27 +120,26 @@ function vars2sigma(vars::Dict{String,Array{T,3}},σgrid::Vector{T},p₀::Intege
                 vcol[vcolname] = vcolval[xx,yy,:]
             end
 
+            if !haskey(vcol,names[:p])
+                vcol[names[:p]] = p
+            end
+            
             # also need to filter dry values and to change zz
             # Consider using `isdry` function and dryval in future.
-            nw = count(notnanorzero,vcol[names[:θ]]) # number of wet points in column
+            nwT = count(notnanorzero,vcol[names[:θ]]) # number of wet points in column
             nwS = count(notnanorzero,vcol[names[:Sₚ]])
-            if nw != nwS
-                error("T,S zeroes inconsistent")
-            end
-
-            if nw > 3
+            nwT != nwS && error("T,S zeroes inconsistent")
+            nw = nwT
+            if nw > splorder
                 # incurs error if splorder > number of points in column
                 # if nw > splorder #need >=n+1 points to do order-n interpolation
-                σ=sigmacolumn(vcol[names[:θ]][1:nw],vcol[names[:Sₚ]][1:nw],pressure[1:nw],p₀,eos)
+                # would like to just send vcol
+                σ=sigmacolumn(vcol[names[:θ]][1:nw],vcol[names[:Sₚ]][1:nw],vcol[names[:p]][1:nw],p₀,eos)
 
                 for (vckey,vcval) in vcol
                     varσ = var2sigmacolumn(σ,vcval[1:nw],σgrid,splorder=splorder,linearinterp=linearinterp)
                     [varsσ[vckey][xx,yy,ss] = convert(T,varσ[ss]) for ss = 1:nσ]
                 end
-
-                # do standard pressure by hand.
-                pσ = var2sigmacolumn(σ,pressure[1:nw],σgrid,splorder=splorder,linearinterp=linearinterp)
-                [varsσ["p"][xx,yy,ss] = convert(T,pσ[ss]) for ss = 1:nσ]
 
             end
         end
@@ -203,10 +203,10 @@ end
 # Output
 - `σ₀`:  sigma-0 for wet points in column
 """
-sigma0column(θz,Sz,pz,dorp="pressure",eos="TEOS10") = sigmacolumn(θz,Sz,pz,0,dorp,eos)
+sigma0column(θz,Sz,pz,eos="TEOS10") = sigmacolumn(θz,Sz,pz,0,eos)
 
 """
-    function sigma1column(θ,S,p;dorp="pressure",eos="TEOS10")
+    function sigma1column(θ,S,p;eos="TEOS10")
     σ₁ for a water column
     Untested for a mix of float values
 
@@ -218,7 +218,7 @@ sigma0column(θz,Sz,pz,dorp="pressure",eos="TEOS10") = sigmacolumn(θz,Sz,pz,0,d
 # Output
 - `σ₁`:  sigma-1 for wet points in column
 """
-sigma1column(θz,Sz,pz,dorp="pressure",eos="TEOS10") = sigmacolumn(θz,Sz,pz,1000,dorp,eos)
+sigma1column(θz,Sz,pz,eos="TEOS10") = sigmacolumn(θz,Sz,pz,1000,eos)
 
 """
     function sigma2column(θ,S,p;dorp="pressure",eos="TEOS10")
@@ -233,8 +233,7 @@ sigma1column(θz,Sz,pz,dorp="pressure",eos="TEOS10") = sigmacolumn(θz,Sz,pz,100
 - `σ₂`:  sigma-2 for wet points in column
 """
 # revised by Ray, Dec 09 2021
-#sigma2column(θz,Sz,pz,eos=missing) = ismissing(eos) ? sigmacolumn(θz,Sz,pz,2000) : sigmacolumn(θz,Sz,pz,2000,eos)
-sigma2column(θz,Sz,pz,dorp="pressure",eos="TEOS10") = sigmacolumn(θz,Sz,pz,2000,dorp,eos)
+sigma2column(θz,Sz,pz,eos="TEOS10") = sigmacolumn(θz,Sz,pz,2000,eos)
 
 """
    function notnanorzero
@@ -693,7 +692,7 @@ function inputcheck(vars)
             error("inconsistently-sized input arrays")
     end
                            
-    return names
+    return names, nxsave, nysave, nzsave
 end
 
 function pgrid(z,lat=30)

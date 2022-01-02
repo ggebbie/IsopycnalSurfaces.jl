@@ -84,24 +84,39 @@ using IsopycnalSurfaces, Test
 
                 σ₁grid = collect(range(minimum(σ₁true),stop=maximum(σ₁true),length=20))
 
-                vars = Dict("θ" => θ, "Sₚ" => S)
+                #vars = Dict("θ" => θ, "Sₚ" => S)
                 vars = Dict(:θ => θ, :Sₚ => S)
-                vars = Dict("theta" => θ, "Sp" => S)
+                #vars = Dict("theta" => θ, "Sp" => S)
+                #names, nx, ny, nz = inputcheck(vars)
 
                 @testset "3d_array_spline" begin
+
                     p₀ = 1000
-                    varsσ = vars2sigma1(vars,pz,σ₁grid,splorder=3,eos=eos)
+                    varsσ = vars2sigma1(vars,σ₁grid,p=pz,splorder=3,eos=eos)
                     xx = rand(1:nx); yy = rand(1:ny)
-                    @test isapprox(varsσ["p"][xx,yy,begin],pz[ztest[begin]])
-                    @test isapprox(varsσ["p"][xx,yy,end],pz[ztest[end]])
+
+                    if haskey(varsσ,:p)
+                        @test isapprox(varsσ[:p][xx,yy,begin],pz[ztest[begin]])
+                        @test isapprox(varsσ[:p][xx,yy,end],pz[ztest[end]])
+                    else
+                        @test isapprox(varsσ["p"][xx,yy,begin],pz[ztest[begin]])
+                        @test isapprox(varsσ["p"][xx,yy,end],pz[ztest[end]])
+                    end
+                    
                 end
 
                 @testset "3d_array_linear" begin
                     #splorder = 3
-                    varsσ = vars2sigma1(vars,pz,σ₁grid,linearinterp=true,eos=eos)
+                    varsσ = vars2sigma1(vars,σ₁grid,p=pz,linearinterp=true,eos=eos)
                     xx = rand(1:nx); yy = rand(1:ny)
-                    @test isapprox(varsσ["p"][xx,yy,begin],pz[ztest[begin]])
-                    @test isapprox(varsσ["p"][xx,yy,end],pz[ztest[end]])
+                    if haskey(varsσ,:p)
+                        @test isapprox(varsσ[:p][xx,yy,begin],pz[ztest[begin]])
+                        @test isapprox(varsσ[:p][xx,yy,end],pz[ztest[end]])
+                    else
+                        @test isapprox(varsσ["p"][xx,yy,begin],pz[ztest[begin]])
+                        @test isapprox(varsσ["p"][xx,yy,end],pz[ztest[end]])
+                    end
+
                 end
             end
         end
