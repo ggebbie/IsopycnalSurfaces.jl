@@ -3,8 +3,11 @@ module IsopycnalSurfaces
 using Dierckx, Interpolations, GibbsSeaWater
 
 export sigma0column, sigma1column, sigma2column,
- vars2sigma, vars2sigma0, vars2sigma1, vars2sigma2,  var2sigmacolumn, sigma1grid,
- mixinversions!, dedup!, density, sigmacolumn, SeaWaterDensity
+    vars2sigma, vars2sigma0, vars2sigma1, vars2sigma2,
+    var2sigmacolumn, sigma1grid,
+    mixinversions!, dedup!, density, sigmacolumn,
+    oceanlist, parsevars, inputcheck, pgrid
+    #SeaWaterDensity
 
 """
     function vars2sigma1(vars,p,σgrid;spline_order,linearinterp,eos)
@@ -19,7 +22,7 @@ export sigma0column, sigma1column, sigma2column,
 # Output
 - `varsσ::Dict{String,Array{T,3}`: dict of 3d arrays of variables on sigma1 surfaces
 """
-vars2sigma0(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="Gibbs") = vars2sigma(vars,pressure,0,σgrid,splorder=splorder,linearinterp=linearinterp,eos=eos) 
+vars2sigma0(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="TEOS10") = vars2sigma(vars,pressure,0,σgrid,splorder=splorder,linearinterp=linearinterp,eos=eos) 
 
 """
     function vars2sigma1(vars,p,σgrid;spline_order,linearinterp,eos)
@@ -34,7 +37,7 @@ vars2sigma0(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="Gibbs") = va
 # Output
 - `varsσ::Dict{String,Array{T,3}`: dict of 3d arrays of variables on sigma1 surfaces
 """
-vars2sigma1(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="Gibbs") = vars2sigma(vars,pressure,1000,σgrid,splorder=splorder,linearinterp=linearinterp,eos=eos) 
+vars2sigma1(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="TEOS10") = vars2sigma(vars,pressure,1000,σgrid,splorder=splorder,linearinterp=linearinterp,eos=eos) 
 
 """
     function vars2sigma2(vars,p,σgrid;spline_order,linearinterp,eos)
@@ -49,7 +52,7 @@ vars2sigma1(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="Gibbs") = va
 # Output
 - `varsσ::Dict{String,Array{T,3}`: dict of 3d arrays of variables on sigma1 surfaces
 """
-vars2sigma2(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="Gibbs") = vars2sigma(vars,pressure,2000,σgrid,splorder=splorder,linearinterp=linearinterp,eos=eos) 
+vars2sigma2(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="TEOS10") = vars2sigma(vars,pressure,2000,σgrid,splorder=splorder,linearinterp=linearinterp,eos=eos) 
 
 """
     function vars2sigma(vars,p,p₀,σgrid;spline_order,linearinterp,eos)
@@ -65,52 +68,49 @@ vars2sigma2(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="Gibbs") = va
 # Output
 - `varsσ::Dict{String,Array{T,3}`: dict of 3d arrays of variables on sigma1 surfaces
 """
-function vars2sigma(vars::Dict{String,Array{T,3}},pressure::Vector{T},p₀::Integer,σgrid::Vector{T};splorder=3,linearinterp=false, dorp="pressure",eos="Gibbs") where T<:AbstractFloat
+function vars2sigma(vars::Dict{String,Array{T,3}},σgrid::Vector{T},p₀::Integer;p=Vector{T}(),z=Vector{T}(),splorder=3,linearinterp=false,eos="TEOS10",lat=30.) where T<:AbstractFloat
 
-    # is there a problem if pressure is not the same type as the input vars?
-    # could introduce two parametric types to function definition above
-    
     # θ and S must exist
 
-    # a list of potential temperature names that are recognized
-    θkeys = ("THETA","θ","theta","T")
-    Skeys = ("SALT","S","Sp")
+    # determine which standard variables are present in Dict
+    names = inputcheck(vars)
 
-    θname = string()
+    # handle the vertical coordinate
 
-    for k in θkeys
-        if haskey(vars,k)
-            θname = k
+    # if p or z are not included as 3D arrays
+    if !haskey(names,:p) & !haskey(names,:z)
+        if isempty(p)
+            # throws error if isempty(z)
+            p = pgrid(z)
         end
     end
-
-    θname == "" && error("Potential temperature missing")
-    nx,ny,nz = size(vars[θname])
-
-    Sname = string()
-    for k in Skeys
-        if haskey(vars,k)
-            nx,ny,nz = size(vars[k])
-            Sname = k
-        end
-    end
-    Sname == "" && error("Salinity missing")
-
-    # loop over faces
+    
     nσ = length(σgrid)
 
     # vcol = Dict with profile/column data
     # pre-allocate each key in vars
-    vcol = Dict{String,Array{T,1}}() # vars in a column
-    varsσ = Dict{String,Array{T,3}}()
+    vcol = Dict{Union{String,Symbol},Vector{T}}() # vars in a column
+    varsσ = Dict{Union{String,Symbol},Array{T,3}}()
 
     for (key, value) in vars
         vcol[key] = fill(convert(T,NaN),nz)
         varsσ[key] = fill(convert(T,NaN),(nx,ny,nσ))
     end
 
+    # if pressure is not passed as a 3D array
     # allocate standard pressure by hand.
-    varsσ["p"] = fill(convert(T,NaN),(nx,ny,nσ))
+    if !haskey(names,:p)
+
+        # use symbols if input used symbols
+        if eltype(keys(names)) == Symbol
+            varsσ[:p] = fill(convert(T,NaN),(nx,ny,nσ))
+        elseif eltype(keys(names)) == String
+            varsσ["p"] = fill(convert(T,NaN),(nx,ny,nσ))
+        else
+            error("unknown key type for input dictionary")
+        end
+            
+    end
 
     for xx = 1:nx
         for yy = 1:ny
@@ -121,8 +121,8 @@ function vars2sigma(vars::Dict{String,Array{T,3}},pressure::Vector{T},p₀::Inte
 
             # also need to filter dry values and to change zz
             # Consider using `isdry` function and dryval in future.
-            nw = count(notnanorzero,vcol[θname]) # number of wet points in column
-            nwS = count(notnanorzero,vcol[Sname])
+            nw = count(notnanorzero,vcol[names[:θ]]) # number of wet points in column
+            nwS = count(notnanorzero,vcol[names[:Sₚ]])
             if nw != nwS
                 error("T,S zeroes inconsistent")
             end
@@ -130,7 +130,7 @@ function vars2sigma(vars::Dict{String,Array{T,3}},pressure::Vector{T},p₀::Inte
             if nw > 3
                 # incurs error if splorder > number of points in column
                 # if nw > splorder #need >=n+1 points to do order-n interpolation
-                σ=sigmacolumn(vcol[θname][1:nw],vcol[Sname][1:nw],pressure[1:nw],p₀,dorp,eos)
+                σ=sigmacolumn(vcol[names[:θ]][1:nw],vcol[names[:Sₚ]][1:nw],pressure[1:nw],p₀,eos)
 
                 for (vckey,vcval) in vcol
                     varσ = var2sigmacolumn(σ,vcval[1:nw],σgrid,splorder=splorder,linearinterp=linearinterp)
@@ -148,52 +148,51 @@ function vars2sigma(vars::Dict{String,Array{T,3}},pressure::Vector{T},p₀::Inte
 end
 
 """
-    function sigmacolumn(θ,S,p,p0,dorp="pressure",eos="Gibbs")
+    function sigmacolumn(θ,S,p,p₀,eos="TEOS10")
     σ for a water column
 # Arguments
 - `θz::Vector{T}`: potential temperature
 - `Sz::Vector{T}`: practical salinity
 - `pz::Vector{T}`: vertical profile of standard pressures in decibar, or ocean depth in meter
 - `p₀`: reference pressure
-- `dorp:String`: pressure coordinate (default) or depth coordinate
-- `eos:String`: optional argument for equation of state, default = "EOS80"
+- `eos:String`: optional argument for equation of state, default = "TEOS10"
 # Output
 - `σ::Vector{T}`:  sigma for wet points in column
 """
-function sigmacolumn(θz::Vector{T},Sz::Vector{T},pz::Vector{T2},p₀, dorp="pressure", eos="Gibbs")::Vector{T} where T<:AbstractFloat where T2<:AbstractFloat
+function sigmacolumn(θz::Vector{T},Sz::Vector{T},pz::Vector{T2},p₀, eos="TEOS10")::Vector{T} where T<:AbstractFloat where T2<:AbstractFloat
 
     nz = length(θz)
     σ = similar(θz)
     
-    if dorp == "pressure"
+    # if dorp == "pressure"
 
-    elseif dorp == "depth"
-        pz = gsw_p_from_z.(-pz, 30) #use 30deg lat as the default location to convert depth to pressure, from GibbsSeaWater.jl
-    else
-        error("Unsupported argument, please enter pressure or depth.")
-    end
+    # elseif dorp == "depth"
+    #     pz = gsw_p_from_z.(-pz, 30) #use 30deg lat as the default location to convert depth to pressure, from GibbsSeaWater.jl
+    # else
+    #     error("Unsupported argument, please enter pressure or depth.")
+    # end
 
     # choose EOS method, added by Ray Dec 09 2021
     if eos == "EOS80" # unesco, saunders et al., 1980
         σ = densityEOS80.(Sz,θz,p₀) .- 1000.0
     elseif eos == "JMD95" # Jackett McDougall 1995, JAOT
-        σa,σb,σc = densityJMD95(θz,Sz,pz,p₀)
+        _,_,σc = densityJMD95(θz,Sz,pz,p₀)
         [σ[zz] = convert(T,σc[zz]) .- 1000.0 for zz = 1:nz]
-    elseif eos == "Gibbs"
+    elseif eos == "TEOS10"
         # argument about using GibbsSeaWater.jl, added by Ray Dec 29, 2021
         # "GibbsSeaWater.jl is a Julia wrapper for GSW-C#master, which is the C implementation of the Thermodynamic Equation of Seawater 2010 (TEOS-10)."
         SA = gsw_sa_from_sp.(Sz,pz,0,30)  #  here we use the fixed location, lon=0deg,lat=30deg, to convert practical S to absolute S
         CT = gsw_ct_from_pt.(SA ,θz) # Conservative T from (Absolute S, sigma0)
-        σ = gsw_rho.(SA, CT,p₀) .- 1000.
+        σ = gsw_rho.(SA,CT,p₀) .- 1000.
     else 
-        error("The entered EOS is not supported currently, please try the supported one, like EOS80, JMD95, Gibbs")
+        error("The entered EOS is not supported currently, please try the supported one, like EOS80, JMD95, TEOS10")
     end
 
     return σ
 end
 
 """
-    function sigma0column(θ,S,p;dorp="pressure",eos="Gibbs")
+    function sigma0column(θ,S,p;dorp="pressure",eos="TEOS10")
     σ₀ for a water column
     Untested for a mix of float values
 
@@ -204,10 +203,10 @@ end
 # Output
 - `σ₀`:  sigma-0 for wet points in column
 """
-sigma0column(θz,Sz,pz,dorp="pressure",eos="Gibbs") = sigmacolumn(θz,Sz,pz,0,dorp,eos)
+sigma0column(θz,Sz,pz,dorp="pressure",eos="TEOS10") = sigmacolumn(θz,Sz,pz,0,dorp,eos)
 
 """
-    function sigma1column(θ,S,p;dorp="pressure",eos="Gibbs")
+    function sigma1column(θ,S,p;dorp="pressure",eos="TEOS10")
     σ₁ for a water column
     Untested for a mix of float values
 
@@ -219,11 +218,10 @@ sigma0column(θz,Sz,pz,dorp="pressure",eos="Gibbs") = sigmacolumn(θz,Sz,pz,0,do
 # Output
 - `σ₁`:  sigma-1 for wet points in column
 """
-#sigma1column(θz,Sz,pz,eos=missing) = ismissing(eos) ? sigmacolumn(θz,Sz,pz,1000) : sigmacolumn(θz,Sz,pz,1000,eos)
-sigma1column(θz,Sz,pz,dorp="pressure",eos="Gibbs") = sigmacolumn(θz,Sz,pz,1000,dorp,eos)
+sigma1column(θz,Sz,pz,dorp="pressure",eos="TEOS10") = sigmacolumn(θz,Sz,pz,1000,dorp,eos)
 
 """
-    function sigma2column(θ,S,p;dorp="pressure",eos="Gibbs")
+    function sigma2column(θ,S,p;dorp="pressure",eos="TEOS10")
     σ₂ for a water column
     Untested for a mix of float values
 
@@ -236,7 +234,7 @@ sigma1column(θz,Sz,pz,dorp="pressure",eos="Gibbs") = sigmacolumn(θz,Sz,pz,1000
 """
 # revised by Ray, Dec 09 2021
 #sigma2column(θz,Sz,pz,eos=missing) = ismissing(eos) ? sigmacolumn(θz,Sz,pz,2000) : sigmacolumn(θz,Sz,pz,2000,eos)
-sigma2column(θz,Sz,pz,dorp="pressure",eos="Gibbs") = sigmacolumn(θz,Sz,pz,2000,dorp,eos)
+sigma2column(θz,Sz,pz,dorp="pressure",eos="TEOS10") = sigmacolumn(θz,Sz,pz,2000,dorp,eos)
 
 """
    function notnanorzero
@@ -416,7 +414,6 @@ end
 
 isnotpositive(x) = (abs(x) == -x)
 
-
 """
 densityJMD95(Θ,Σ,Π,Π0) from MITgcmTools.jl/PhysicalOceanography.jl SeawaterDensity, From Gael Forget
 
@@ -431,7 +428,7 @@ Reference: https://www.jodc.go.jp/info/ioc_doc/UNESCO_tech/059832eb.pdf
 
 Check value: ρI = `1041.83267kg/m^3` for Θ=`3°Celcius`, Σ=`35psu`, Π=`3000dbar`
 ```
-(ρP,ρI,ρR) = SeaWaterDensity(3.,35.5,3000.)
+(ρP,ρI,ρR) = densityJMD95(3.,35.5,3000.)
 isapprox(ρI,1041.83267, rtol=1e-6)
 ```
 """
@@ -618,4 +615,99 @@ function secant_bulk_modulus(S,T,p)
     return K
 end
 
+function oceanlist()
+
+    list = Dict{Symbol,Tuple}()
+    
+    # a list of potential temperature names that are names
+    list[:θ] = (:THETA,:θ,:theta) # THETA from MITgcm
+
+    # Conservative Temperature
+    list[:Θ] = (:Θ,:Theta,:CT)
+
+    # in-situ temperature
+    list[:T] = (:T,:Tinsitu)
+
+    # practical salinity 
+    list[:Sₚ] = (:SALT,:S,:Sp,:SP,:Sₚ) # SALT from MITgcm
+    # absolute salinity
+    list[:Sₐ] = (:Sa,:SA,:Sₐ)
+
+    # pressure
+    list[:p] = (:pressure,:p,:psea,:P) #psea = sea pressure
+
+    # depth
+    list[:z] = (:z,:Z,:depth,:DEPTH) 
+
+    return list
+    
 end
+
+function parsevars(vars)
+
+    # which variables exist in vars Dictionary?
+    list = oceanlist()
+
+    names = Dict{Symbol,Union{Symbol,String}}()
+    for (key,values) in list
+        for k in values
+            if haskey(vars,k)
+                names[key] = k
+            end
+
+            # permit strings as well as symbols
+            if haskey(vars,string(k))
+                names[key] = string(k)
+            end
+        end
+    end
+    
+    return names
+    
+end # function
+
+function inputcheck(vars)
+
+    names = parsevars(vars)
+    
+    !haskey(names,:T) &
+        !haskey(names,:θ) &
+        !haskey(names,:Θ) &&
+        error("No temperature variable found")
+
+    !haskey(names,:Sₚ) &
+        !haskey(names,:Sₐ) &&
+        error("No salinity variable found")
+
+    # check that dimensions match
+
+    nxsave = []; nysave = []; nzsave = [];
+    for (k,v) in vars
+        nx,ny,nz = size(v)
+        
+        if isempty(nxsave); nxsave = nx; end
+        if isempty(nysave); nysave = ny; end
+        if isempty(nzsave); nzsave = nz; end
+        
+        (nx != nxsave ) || (ny != nysave ) || (nz != nzsave ) &&
+            error("inconsistently-sized input arrays")
+    end
+                           
+    return names
+end
+
+function pgrid(z,lat=30)
+
+    # if p doesn't exist as argument but z does,
+    # transfer z to p.
+    if !isempty(z)
+        # shift depth to pressure
+        #use 30deg lat as the default location to convert depth to pressure, from GibbsSeaWater.jl
+        p = gsw_p_from_z.(-z, lat)
+    else
+        # if p and z don't exist, error. 
+        error("Input vertical coordinate, pressure or depth, not found")
+    end
+end
+
+end # module

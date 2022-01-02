@@ -84,7 +84,9 @@ using IsopycnalSurfaces, Test
 
                 σ₁grid = collect(range(minimum(σ₁true),stop=maximum(σ₁true),length=20))
 
-                vars = Dict("θ" => θ, "Sp" => S)
+                vars = Dict("θ" => θ, "Sₚ" => S)
+                vars = Dict(:θ => θ, :Sₚ => S)
+                vars = Dict("theta" => θ, "Sp" => S)
 
                 @testset "3d_array_spline" begin
                     p₀ = 1000
