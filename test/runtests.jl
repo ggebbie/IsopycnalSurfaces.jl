@@ -56,17 +56,27 @@ using IsopycnalSurfaces, Test
         @testset "EOS" begin
             # just check that this runs
             # would be better to show some similarity in results
-            
+            varscol = Dict(:θ => θz, :S => Sz, :p => pz) 
+            namescol = parsevars(varscol)
+
+            println("Using the EOS from the Thermodynamic Equation of State 2010")
+            display(sigmacolumn(varscol,namescol,p₀=2000,eos="TEOS10"))
             println("Using the EOS from MITgcmTools.jl:")
             display(sigma2column(θz,Sz,pz,"JMD95")) # using the EOS from MITgcmTools.jl
             println("")
             println("Default, using the EOS from PhysOcean.jl/EOS80.jl:")
             display(sigma2column(θz,Sz,pz))  # default, using the EOS from PhysOcean.jl/EOS80.jl
 
+            zz = rand(1:nz)
+            @test abs(sigma2column(θz,Sz,pz,"JMD95")[zz] - sigma2column(θz,Sz,pz,"EOS80")[zz])/(sigma2column(θz,Sz,pz,"JMD95")[zz] + sigma2column(θz,Sz,pz,"EOS80")[zz]) < 0.005
+
+            @test abs(sigmacolumn(varscol,namescol,p₀=2000,eos="TEOS10")[zz] - sigma2column(θz,Sz,pz,"EOS80")[zz])/(sigmacolumn(varscol,namescol,p₀=2000,eos="TEOS10")[zz] + sigma2column(θz,Sz,pz,"EOS80")[zz]) < 0.005
+
         end # EOS
 
         # test input from a 3D array
         @testset "3d_array" begin
+            
             eoses = ("EOS80","JMD95")
             for eos in eoses
                 ztest = sort(rand(2:8,2))
@@ -84,38 +94,32 @@ using IsopycnalSurfaces, Test
 
                 σ₁grid = collect(range(minimum(σ₁true),stop=maximum(σ₁true),length=20))
 
-                #vars = Dict("θ" => θ, "Sₚ" => S)
-                vars = Dict(:θ => θ, :Sₚ => S)
-                #vars = Dict("theta" => θ, "Sp" => S)
-                #names, nx, ny, nz = inputcheck(vars)
+                vars_strings = Dict("θ" => θ, "Sₚ" => S)
+                vars_symbols = Dict(:θ => θ, :Sₚ => S, :p => p)
 
-                @testset "3d_array_spline" begin
+                # pick a random location to sample
+                xx = rand(1:nx); yy = rand(1:ny)
 
-                    p₀ = 1000
-                    varsσ = vars2sigma1(vars,σ₁grid,p=pz,splorder=3,eos=eos)
-                    xx = rand(1:nx); yy = rand(1:ny)
+                @testset "spline" begin
 
-                    if haskey(varsσ,:p)
-                        @test isapprox(varsσ[:p][xx,yy,begin],pz[ztest[begin]])
-                        @test isapprox(varsσ[:p][xx,yy,end],pz[ztest[end]])
-                    else
-                        @test isapprox(varsσ["p"][xx,yy,begin],pz[ztest[begin]])
-                        @test isapprox(varsσ["p"][xx,yy,end],pz[ztest[end]])
-                    end
-                    
+                    # test when input dictionary uses strings
+                    varsσ = vars2sigma1(vars_strings,σ₁grid,p=pz,splorder=3,eos=eos)
+                    @test isapprox(varsσ["p"][xx,yy,begin],pz[ztest[begin]])
+                    @test isapprox(varsσ["p"][xx,yy,end],pz[ztest[end]])
+
+                    # test when input dictionary uses symbols
+                    varsσ = vars2sigma1(vars_symbols,σ₁grid,p=pz,splorder=3,eos=eos)
+                    @test isapprox(varsσ[:p][xx,yy,begin],pz[ztest[begin]])
+                    @test isapprox(varsσ[:p][xx,yy,end],pz[ztest[end]])
+
                 end
 
-                @testset "3d_array_linear" begin
+                @testset "linear" begin
                     #splorder = 3
-                    varsσ = vars2sigma1(vars,σ₁grid,p=pz,linearinterp=true,eos=eos)
+                    varsσ = vars2sigma1(vars_symbols,σ₁grid,p=pz,linearinterp=true,eos=eos)
                     xx = rand(1:nx); yy = rand(1:ny)
-                    if haskey(varsσ,:p)
-                        @test isapprox(varsσ[:p][xx,yy,begin],pz[ztest[begin]])
-                        @test isapprox(varsσ[:p][xx,yy,end],pz[ztest[end]])
-                    else
-                        @test isapprox(varsσ["p"][xx,yy,begin],pz[ztest[begin]])
-                        @test isapprox(varsσ["p"][xx,yy,end],pz[ztest[end]])
-                    end
+                    @test isapprox(varsσ[:p][xx,yy,begin],pz[ztest[begin]])
+                    @test isapprox(varsσ[:p][xx,yy,end],pz[ztest[end]])
 
                 end
             end

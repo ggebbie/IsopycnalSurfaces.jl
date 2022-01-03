@@ -68,15 +68,13 @@ vars2sigma2(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="TEOS10") = v
 # Output
 - `varsσ::Dict{String,Array{T,3}`: dict of 3d arrays of variables on sigma1 surfaces
 """
-function vars2sigma(vars::Dict{Symbol,Array{T,3}},σgrid::Vector{T},p₀::Integer;p=Vector{T}(),z=Vector{T}(),splorder=3,linearinterp=false,eos="TEOS10",lat=30.) where T<:AbstractFloat
+function vars2sigma(vars::Union{Dict{Symbol,Array{T,3}},Dict{String,Array{T,3}}},σgrid::Vector{T},p₀::Integer;p=Vector{T}(),z=Vector{T}(),splorder=3,linearinterp=false,eos="TEOS10",lat=30.) where T<:AbstractFloat
 
-    # θ and S must exist
-
+    # temperature and salinity must exist
     # determine which standard variables are present in Dict
     names,nx,ny,nz = inputcheck(vars)
 
     # handle the vertical coordinate
-
     # if p or z are not included as 3D arrays
     if !haskey(names,:p) & !haskey(names,:z)
         if isempty(p)
@@ -89,8 +87,12 @@ function vars2sigma(vars::Dict{Symbol,Array{T,3}},σgrid::Vector{T},p₀::Intege
 
     # vcol = Dict with profile/column data
     # pre-allocate each key in vars
-    vcol = Dict{Union{String,Symbol},Vector{T}}() # vars in a column
-    varsσ = Dict{Union{String,Symbol},Array{T,3}}()
+    # Does Union need to be outside of Dict?
+    Ts = eltype(keys(vars))
+    vcol = Dict{Ts,Vector{T}}() # vars in a column
+    #vcol = Dict{Union{String,Symbol},Vector{T}}() # vars in a column
+    varsσ = Dict{Ts,Array{T,3}}()
+    #varsσ = Dict{Union{String,Symbol},Array{T,3}}()
 
     for (key, value) in vars
         vcol[key] = fill(convert(T,NaN),nz)
@@ -102,9 +104,9 @@ function vars2sigma(vars::Dict{Symbol,Array{T,3}},σgrid::Vector{T},p₀::Intege
     if !haskey(names,:p)
 
         # use symbols if input used symbols
-        if eltype(keys(names)) == Symbol
+        if eltype(values(names)) == Symbol
             names[:p] = :p
-        elseif eltype(keys(names)) == String
+        elseif eltype(values(names)) == String
             names[:p] = "p"
         else
             error("unknown key type for input dictionary")
@@ -151,6 +153,63 @@ end
     function sigmacolumn(θ,S,p,p₀,eos="TEOS10")
     σ for a water column
 # Arguments
+- `varscol::Dict`: collection of relevant variables
+- `names::Dict`: points to standard ocean variable names
+- `p₀`: reference pressure
+- `eos:String`: optional argument for equation of state, default = "TEOS10"
+# Output
+- `σ::Vector{T}`:  sigma for wet points in column
+"""
+function sigmacolumn(vars,names;p₀=0,eos="TEOS10",lon=0.,lat=30.)
+
+    if eos == "JMD95" || eos == "EOS80"
+        if haskey(vars,names[:θ]) & haskey(vars,names[:Sₚ]) & haskey(vars,names[:p])
+            σ = sigmacolumn(vars[names[:θ]][1:nw],vars[names[:Sₚ]][1:nw],vars[names[:p]][1:nw],p₀,eos)
+        else
+            error("JMD95 requires inputs of potential temperature, practical salinity, and pressure")
+        end
+        
+    elseif eos == "TEOS10"
+
+        #case SA not available, SP available
+        if !haskey(names,:Sₐ) 
+            if haskey(names,:Sₚ) && haskey(names,:p)
+                #transfer SP to SA
+                # get GSW potential density
+                # argument about using GibbsSeaWater.jl, added by Ray Dec 29, 2021
+                # "GibbsSeaWater.jl is a Julia wrapper for GSW-C#master,
+                # which is the C implementation of the Thermodynamic Equation of Seawater 2010 (TEOS-10)."
+                Sₐ = gsw_sa_from_sp.(vars[names[:Sₚ]],vars[names[:p]],lon,lat)  #  here we use the fixed location, lon=0deg,lat=30deg, to convert practical S to absolute S
+            else
+                error("No salinity or pressure variable available")
+            end
+        else
+            Sₐ = vars[names[:Sₐ]] # seems like needless allocation
+        end
+
+        # case CT not available, pt available
+        if !haskey(names,:Θ)
+            if haskey(names,:θ)
+                # transfer pt to CT
+                Θ = gsw_ct_from_pt.(Sₐ,vars[names[:θ]]) # Conservative T from (Absolute S, sigma0)
+            elseif haskey(vars,names[:T])
+                #transfer in-situ T to CT
+            else
+                error("No temperature variable available")
+            end
+        else
+            Θ = vars[names[:Θ]]
+        end
+
+        σ = gsw_rho.(Sₐ,Θ,p₀) .- 1000.
+    
+    end
+end
+    
+"""
+    function sigmacolumn(θ,S,p,p₀,eos="TEOS10")
+    σ for a water column
+# Arguments
 - `θz::Vector{T}`: potential temperature
 - `Sz::Vector{T}`: practical salinity
 - `pz::Vector{T}`: vertical profile of standard pressures in decibar, or ocean depth in meter
@@ -159,7 +218,7 @@ end
 # Output
 - `σ::Vector{T}`:  sigma for wet points in column
 """
-function sigmacolumn(θz::Vector{T},Sz::Vector{T},pz::Vector{T2},p₀, eos="TEOS10")::Vector{T} where T<:AbstractFloat where T2<:AbstractFloat
+function sigmacolumn(θz::Vector{T},Sz::Vector{T},pz::Vector{T2},p₀,eos="TEOS10")::Vector{T} where T<:AbstractFloat where T2<:AbstractFloat
 
     nz = length(θz)
     σ = similar(θz)
@@ -192,7 +251,7 @@ function sigmacolumn(θz::Vector{T},Sz::Vector{T},pz::Vector{T2},p₀, eos="TEOS
 end
 
 """
-    function sigma0column(θ,S,p;dorp="pressure",eos="TEOS10")
+    function sigma0column(θ,S,p;eos="TEOS10")
     σ₀ for a water column
     Untested for a mix of float values
 
@@ -221,7 +280,7 @@ sigma0column(θz,Sz,pz,eos="TEOS10") = sigmacolumn(θz,Sz,pz,0,eos)
 sigma1column(θz,Sz,pz,eos="TEOS10") = sigmacolumn(θz,Sz,pz,1000,eos)
 
 """
-    function sigma2column(θ,S,p;dorp="pressure",eos="TEOS10")
+    function sigma2column(θ,S,p;eos="TEOS10")
     σ₂ for a water column
     Untested for a mix of float values
 
@@ -238,7 +297,7 @@ sigma2column(θz,Sz,pz,eos="TEOS10") = sigmacolumn(θz,Sz,pz,2000,eos)
 """
    function notnanorzero
 
-     true is argument is not a NaN nor zero
+     true when argument is not a NaN nor zero
 """
 notnanorzero(z) = !iszero(z) && !isnan(z)
 
@@ -647,7 +706,9 @@ function parsevars(vars)
     # which variables exist in vars Dictionary?
     list = oceanlist()
 
-    names = Dict{Symbol,Union{Symbol,String}}()
+    #names = Dict{Symbol,Union{Symbol,String}}()
+    Ts = eltype(keys(vars))
+    names = Dict{Symbol,Ts}()
     for (key,values) in list
         for k in values
             if haskey(vars,k)
