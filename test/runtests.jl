@@ -23,6 +23,27 @@ using IsopycnalSurfaces, Test
         end
     end
 
+    @testset "point" begin
+
+        # classic definition for sigma1
+        θ = Vector{Float64}(undef,1); θ[1] = 15.0
+        S = Vector{Float64}(undef,1); S[1] = 35.0
+        p = Vector{Float64}(undef,1); p[1] = 2000.0
+        σ₁A = sigma1column(θ,S,p,"EOS80")
+        σ₁B = sigma1column(θ,S,p,"JMD95")
+
+        # Try more general version of sigma1
+        vars = Dict(:θ => θ, :S => S, :p => p) 
+        σ₁C= sigmacolumn(vars,p₀=1000,eos="TEOS10")
+
+        @test abs(σ₁C[1] - σ₁B[1])/(abs(σ₁C[1]) + abs(σ₁B[1])) < 0.05
+        @test abs(σ₁A[1] - σ₁B[1])/(abs(σ₁A[1]) + abs(σ₁B[1])) < 0.05
+
+        # can you supply a depth index instead of pressure?
+        
+    end
+    
+        
     @testset "column" begin
         ################################
         # Idealized mapping onto sigma1
@@ -60,7 +81,7 @@ using IsopycnalSurfaces, Test
             namescol = parsevars(varscol)
 
             println("Using the EOS from the Thermodynamic Equation of State 2010")
-            display(sigmacolumn(varscol,namescol,p₀=2000,eos="TEOS10"))
+            display(sigmacolumn(varscol,p₀=2000,eos="TEOS10"))
             println("Using the EOS from MITgcmTools.jl:")
             display(sigma2column(θz,Sz,pz,"JMD95")) # using the EOS from MITgcmTools.jl
             println("")
@@ -68,10 +89,13 @@ using IsopycnalSurfaces, Test
             display(sigma2column(θz,Sz,pz))  # default, using the EOS from PhysOcean.jl/EOS80.jl
 
             zz = rand(1:nz)
+            
+            # EOS80 versus JMD95
             @test abs(sigma2column(θz,Sz,pz,"JMD95")[zz] - sigma2column(θz,Sz,pz,"EOS80")[zz])/(sigma2column(θz,Sz,pz,"JMD95")[zz] + sigma2column(θz,Sz,pz,"EOS80")[zz]) < 0.005
 
-            @test abs(sigmacolumn(varscol,namescol,p₀=2000,eos="TEOS10")[zz] - sigma2column(θz,Sz,pz,"EOS80")[zz])/(sigmacolumn(varscol,namescol,p₀=2000,eos="TEOS10")[zz] + sigma2column(θz,Sz,pz,"EOS80")[zz]) < 0.005
-
+            # EOS80 versus TEOS10
+            @test abs(sigmacolumn(varscol,p₀=2000,eos="TEOS10")[zz] - sigma2column(θz,Sz,pz,"EOS80")[zz])/(sigmacolumn(varscol,p₀=2000,eos="TEOS10")[zz] + sigma2column(θz,Sz,pz,"EOS80")[zz]) < 0.005
+            
         end # EOS
 
         # test input from a 3D array
@@ -122,6 +146,7 @@ using IsopycnalSurfaces, Test
                     @test isapprox(varsσ[:p][xx,yy,end],pz[ztest[end]])
 
                 end
+
             end
         end
     end # column

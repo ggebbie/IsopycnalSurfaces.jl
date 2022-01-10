@@ -25,7 +25,7 @@ export sigma0column, sigma1column, sigma2column,
 vars2sigma0(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="TEOS10") = vars2sigma(vars,pressure,0,σgrid,splorder=splorder,linearinterp=linearinterp,eos=eos) 
 
 """
-    function vars2sigma1(vars,p,σgrid;spline_order,linearinterp,eos)
+    function vars2sigma1(vars,σgrid;p,spline_order,linearinterp,eos)
     map variables from regular 3D grid onto σ₁ surfaces
 # Arguments
 - `vars::Dict{String,Array{T,3}}}`: dict of 3d arrays
@@ -55,7 +55,7 @@ vars2sigma1(vars,σgrid;p=Vector{T}(),splorder=3,linearinterp=false,eos="TEOS10"
 vars2sigma2(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="TEOS10") = vars2sigma(vars,pressure,2000,σgrid,splorder=splorder,linearinterp=linearinterp,eos=eos) 
 
 """
-    function vars2sigma(vars,p,p₀,σgrid;spline_order,linearinterp,eos)
+    function vars2sigma(vars,σgrid,p₀;p,z,spline_order,linearinterp,eos,lat,lon)
     map variables from regular 3D grid onto sigma surfaces
 # Arguments
 - `vars::Dict{String,Array{T,3}}}`: dict of 3d arrays
@@ -65,10 +65,12 @@ vars2sigma2(vars,pressure,σgrid;splorder=3,linearinterp=false,eos="TEOS10") = v
 - `splorder`: 1-5, order of spline, optional keyword argument, default=3
 - `linearinterp`: optional keyword logical argument, default=false
 - `eos`: optional keyword string for equation of state, default = "EOS80"
+- `lon`: longitude
+- `lat`: latitude
 # Output
 - `varsσ::Dict{String,Array{T,3}`: dict of 3d arrays of variables on sigma1 surfaces
 """
-function vars2sigma(vars::Union{Dict{Symbol,Array{T,3}},Dict{String,Array{T,3}}},σgrid::Vector{T},p₀::Integer;p=Vector{T}(),z=Vector{T}(),splorder=3,linearinterp=false,eos="TEOS10",lat=30.) where T<:AbstractFloat
+function vars2sigma(vars::Union{Dict{Symbol,Array{T,3}},Dict{String,Array{T,3}}},σgrid::Vector{T},p₀::Integer;p=Vector{T}(),z=Vector{T}(),splorder=3,linearinterp=false,eos="TEOS10",lon=0.0,lat=30.) where T<:AbstractFloat
 
     # temperature and salinity must exist
     # determine which standard variables are present in Dict
@@ -150,18 +152,20 @@ function vars2sigma(vars::Union{Dict{Symbol,Array{T,3}},Dict{String,Array{T,3}}}
 end
 
 """
-    function sigmacolumn(θ,S,p,p₀,eos="TEOS10")
+    function sigmacolumn(vars;p₀=0,eos="TEOS10",lon=0.,lat=30.)
     σ for a water column
 # Arguments
-- `varscol::Dict`: collection of relevant variables
-- `names::Dict`: points to standard ocean variable names
-- `p₀`: reference pressure
-- `eos:String`: optional argument for equation of state, default = "TEOS10"
+- `vars::Dict`: collection of relevant variables
+- `p₀=0`: reference pressure
+- `eos:String="TEOS10"`: optional argument for equation of state, default = "TEOS10"
+- `lon=0.0`: longitude for absolute salinity calcs
+- `lat=30.0`: latitude for absolute salinity calcs
 # Output
 - `σ::Vector{T}`:  sigma for wet points in column
 """
-function sigmacolumn(vars,names;p₀=0,eos="TEOS10",lon=0.,lat=30.)
+function sigmacolumn(vars;p₀=0,eos="TEOS10",lon=0.,lat=30.)
 
+    names = parsevars(vars)
     if eos == "JMD95" || eos == "EOS80"
         if haskey(vars,names[:θ]) & haskey(vars,names[:Sₚ]) & haskey(vars,names[:p])
             σ = sigmacolumn(vars[names[:θ]][1:nw],vars[names[:Sₚ]][1:nw],vars[names[:p]][1:nw],p₀,eos)
@@ -209,6 +213,7 @@ end
 """
     function sigmacolumn(θ,S,p,p₀,eos="TEOS10")
     σ for a water column
+    Classic version of the function that takes potential temperature and practical salinity
 # Arguments
 - `θz::Vector{T}`: potential temperature
 - `Sz::Vector{T}`: practical salinity
@@ -222,14 +227,6 @@ function sigmacolumn(θz::Vector{T},Sz::Vector{T},pz::Vector{T2},p₀,eos="TEOS1
 
     nz = length(θz)
     σ = similar(θz)
-    
-    # if dorp == "pressure"
-
-    # elseif dorp == "depth"
-    #     pz = gsw_p_from_z.(-pz, 30) #use 30deg lat as the default location to convert depth to pressure, from GibbsSeaWater.jl
-    # else
-    #     error("Unsupported argument, please enter pressure or depth.")
-    # end
 
     # choose EOS method, added by Ray Dec 09 2021
     if eos == "EOS80" # unesco, saunders et al., 1980
@@ -244,15 +241,16 @@ function sigmacolumn(θz::Vector{T},Sz::Vector{T},pz::Vector{T2},p₀,eos="TEOS1
         CT = gsw_ct_from_pt.(SA ,θz) # Conservative T from (Absolute S, sigma0)
         σ = gsw_rho.(SA,CT,p₀) .- 1000.
     else 
-        error("The entered EOS is not supported currently, please try the supported one, like EOS80, JMD95, TEOS10")
+        error("The entered EOS is not supported for the classic version of this function, please try the supported one, like EOS80 or JMD95")
     end
 
     return σ
 end
 
 """
-    function sigma0column(θ,S,p;eos="TEOS10")
+    function sigma0column(θ,S,p,eos="TEOS10")
     σ₀ for a water column
+    Classic format of the function
     Untested for a mix of float values
 
 # Arguments
@@ -265,8 +263,9 @@ end
 sigma0column(θz,Sz,pz,eos="TEOS10") = sigmacolumn(θz,Sz,pz,0,eos)
 
 """
-    function sigma1column(θ,S,p;eos="TEOS10")
+    function sigma1column(θ,S,p,eos="TEOS10")
     σ₁ for a water column
+    Classic version of the function that takes potential temperature and practical salinity
     Untested for a mix of float values
 
 # Arguments
@@ -280,8 +279,9 @@ sigma0column(θz,Sz,pz,eos="TEOS10") = sigmacolumn(θz,Sz,pz,0,eos)
 sigma1column(θz,Sz,pz,eos="TEOS10") = sigmacolumn(θz,Sz,pz,1000,eos)
 
 """
-    function sigma2column(θ,S,p;eos="TEOS10")
+    function sigma2column(θ,S,p,eos="TEOS10")
     σ₂ for a water column
+    Classic version of the function
     Untested for a mix of float values
 
 # Arguments
@@ -673,6 +673,11 @@ function secant_bulk_modulus(S,T,p)
     return K
 end
 
+"""
+    function oceanlist
+    A list of variable names for the standard oceanographic variables. 
+    Multiple variable names are recognized for temperature, for example.
+"""
 function oceanlist()
 
     list = Dict{Symbol,Tuple}()
@@ -701,6 +706,12 @@ function oceanlist()
     
 end
 
+"""
+    function parsevars(vars)
+    What variables are in the vars Dictionary?
+    This function relates the IsopycnalSurfaces.jl name for each variable
+    to the input name that is used.
+"""
 function parsevars(vars)
 
     # which variables exist in vars Dictionary?
@@ -726,6 +737,12 @@ function parsevars(vars)
     
 end # function
 
+"""
+   function inputcheck(vars)
+   
+     Are all variables available for computing density?
+    To check, first parse all of variable input names.    
+"""
 function inputcheck(vars)
 
     names = parsevars(vars)
@@ -756,6 +773,12 @@ function inputcheck(vars)
     return names, nxsave, nysave, nzsave
 end
 
+"""
+    function pgrid(z,lat=30)
+    If depth is entered as an input, but not pressure,
+    transfer depth to pressure using GibbsSeaWater.jl.
+    Then compute density.
+"""
 function pgrid(z,lat=30)
 
     # if p doesn't exist as argument but z does,
