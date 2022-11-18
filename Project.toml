@@ -1,7 +1,7 @@
 name = "IsopycnalSurfaces"
 uuid = "29a8b8bc-eb2a-4ada-9a47-be49547c4d59"
 authors = ["G Jake Gebbie"]
-version = "0.1.6"
+version = "0.1.7"
 
 [deps]
 Dierckx = "39dd38d3-220a-591b-8e3c-4c3a8c710a94"
@@ -13,7 +13,7 @@ Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 [compat]
 Dierckx = "0.5"
 Interpolations = "0.12,0.13"
-julia = "1.6,1.7"
+julia = "1.8"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

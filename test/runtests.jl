@@ -54,9 +54,10 @@ using IsopycnalSurfaces, Test
         @test abs(σ₁A[1] - σ₁B[1])/(abs(σ₁A[1]) + abs(σ₁B[1])) < 0.05
         @test abs(σ₁D[1] - σ₁B[1])/(abs(σ₁D[1]) + abs(σ₁B[1])) < 0.05
 
+        # depth index not implemented yet
         # can one supply a depth index instead of pressure?
-        vars = Dict("θ" => θ, "S" => S, "z" => p) 
-        σ₁E= sigmacolumn(vars,p₀=1000,eos="TEOS10")
+        #vars = Dict("θ" => θ, "S" => S, "z" => p) 
+        #σ₁E= sigmacolumn(vars,p₀=1000,eos="TEOS10")
         
     end
     
