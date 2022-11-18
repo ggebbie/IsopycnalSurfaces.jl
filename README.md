@@ -21,6 +21,7 @@ the order of spline interpolation (`splorder`), a logical argument to force line
 # Equations of state 
 - "EOS80" from UNESCO 1980 (Saunders et al. 1980), following  gher-ulg/PhysOcean.jl 
 - "JMD95" from Jackett and McDougall 1995, following gaelforget/MITgcmTools.jl
+- Equation of state "TEOS10" from IOC et al. 2010, following GibbsSeaWater.jl
 
 # Documentation and tests
 
@@ -64,7 +65,6 @@ Available functions are listed in the documentation [here](https://ggebbie.githu
 # Future work: 
 - Allow 2D or 4D input fields
 - Permit input vertical coordinate to be pressure or depth
-- Equation of state "TEOS10" from IOC et al. 2010
 - Report number of inversions
 - Calculate thickness of layers
 - Consider GPU support
