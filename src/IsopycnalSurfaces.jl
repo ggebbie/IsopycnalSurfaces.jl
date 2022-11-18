@@ -239,9 +239,9 @@ function sigmacolumn(θz::Vector{T},Sz::Vector{T},pz::Vector{T2},p₀,eos="TEOS1
         # "GibbsSeaWater.jl is a Julia wrapper for GSW-C#master, which is the C implementation of the Thermodynamic Equation of Seawater 2010 (TEOS-10)."
         SA = gsw_sa_from_sp.(Sz,pz,0,30)  #  here we use the fixed location, lon=0deg,lat=30deg, to convert practical S to absolute S
         CT = gsw_ct_from_pt.(SA ,θz) # Conservative T from (Absolute S, sigma0)
-        σ = gsw_rho.(SA,CT,p₀) .- 1000.
+        σ = gsw_rho.(SA,CT,p₀) .- 1000.0
     else 
-        error("The entered EOS is not supported for the classic version of this function, please try the supported one, like EOS80 or JMD95")
+        error("The entered EOS is not supported for the classic version of this function, please try the supported one, like EOS80, JMD95, or TEOS10")
     end
 
     return σ

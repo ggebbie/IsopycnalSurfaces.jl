@@ -25,21 +25,38 @@ using IsopycnalSurfaces, Test
 
     @testset "point" begin
 
+        # some examples of different interfaces.
+        
         # classic definition for sigma1
         θ = Vector{Float64}(undef,1); θ[1] = 15.0
         S = Vector{Float64}(undef,1); S[1] = 35.0
         p = Vector{Float64}(undef,1); p[1] = 2000.0
+
+        # classic EOS takes 3 classic variables.
         σ₁A = sigma1column(θ,S,p,"EOS80")
         σ₁B = sigma1column(θ,S,p,"JMD95")
 
-        # Try more general version of sigma1
-        vars = Dict(:θ => θ, :S => S, :p => p) 
-        σ₁C= sigmacolumn(vars,p₀=1000,eos="TEOS10")
+        # Thermodynamic EOS will also take classic variables. 
+        σ₁C = sigma1column(θ,S,p,"TEOS10")
 
+        # Argument list can be packed into a Dict with symbols.
+        vars = Dict(:θ => θ, :S => S, :p => p)
+        #σ₁A2= sigmacolumn(vars,p₀=1000,eos="EOS80") # fails
+        #σ₁B2= sigmacolumn(vars,p₀=1000,eos="JMD95") # fails
+        σ₁C2= sigmacolumn(vars,p₀=1000,eos="TEOS10")
+
+        # A more general version with strings instead of symbols
+        vars = Dict("θ" => θ, "S" => S, "p" => p) 
+        σ₁D= sigmacolumn(vars,p₀=1000,eos="TEOS10")
+
+        # smaller than 5% error?
         @test abs(σ₁C[1] - σ₁B[1])/(abs(σ₁C[1]) + abs(σ₁B[1])) < 0.05
         @test abs(σ₁A[1] - σ₁B[1])/(abs(σ₁A[1]) + abs(σ₁B[1])) < 0.05
+        @test abs(σ₁D[1] - σ₁B[1])/(abs(σ₁D[1]) + abs(σ₁B[1])) < 0.05
 
-        # can you supply a depth index instead of pressure?
+        # can one supply a depth index instead of pressure?
+        vars = Dict("θ" => θ, "S" => S, "z" => p) 
+        σ₁E= sigmacolumn(vars,p₀=1000,eos="TEOS10")
         
     end
     
